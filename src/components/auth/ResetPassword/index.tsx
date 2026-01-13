@@ -112,9 +112,9 @@ const ResetPassword = () => {
 
   if (isValidToken === null) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
         <div className="text-center">
-          <p className="text-gray-300">Verifying reset token...</p>
+          <p className="text-slate-500 dark:text-gray-300">Verifying reset token...</p>
         </div>
       </div>
     );
@@ -122,10 +122,10 @@ const ResetPassword = () => {
 
   if (isValidToken === false) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
         <header className="space-y-1">
-          <h1 className="text-3xl font-bold text-white">Invalid reset link</h1>
-          <p className="text-sm text-gray-300">
+          <h1 className="text-3xl font-bold">Invalid reset link</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-300">
             This password reset link is invalid or has expired.
           </p>
         </header>
@@ -133,7 +133,7 @@ const ResetPassword = () => {
         <div className="text-center">
           <Link
             href="/forget-password"
-            className="inline-block rounded-xl bg-gradient-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-red-500/50 hover:scale-105"
+            className="inline-block rounded-xl bg-linear-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-lg hover:shadow-red-500/50"
           >
             Request new reset link
           </Link>
@@ -143,44 +143,44 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
       <header className="space-y-1">
-        <h1 className="text-3xl font-bold text-white">Reset your password</h1>
-        <p className="text-sm text-gray-300">
+        <h1 className="text-3xl font-bold">Reset your password</h1>
+        <p className="text-sm text-slate-500 dark:text-gray-300">
           Enter your new password below.
         </p>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5 text-sm">
-          <span className="text-white font-medium">New Password</span>
+          <span className="font-medium text-slate-800 dark:text-white">New Password</span>
           <input
             required
             minLength={6}
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-transparent focus:ring-2 focus:ring-green-500 transition-all"
+            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="At least 6 characters"
           />
         </label>
 
         <label className="block space-y-1.5 text-sm">
-          <span className="text-white font-medium">Confirm Password</span>
+          <span className="font-medium text-slate-800 dark:text-white">Confirm Password</span>
           <input
             required
             minLength={6}
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            className="w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-transparent focus:ring-2 focus:ring-green-500 transition-all"
+            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="Confirm your password"
           />
         </label>
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-green-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full rounded-xl bg-linear-to-r from-green-500 via-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-green-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Updating…' : 'Update password'}
@@ -190,7 +190,7 @@ const ResetPassword = () => {
       <div className="text-center text-sm">
         <Link
           href="/login"
-          className="text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login
         </Link>

@@ -106,45 +106,36 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="py-24 bg-black relative overflow-hidden">
+    <section id="features" className="relative overflow-hidden bg-white py-24 text-slate-900 transition-colors dark:bg-black dark:text-white">
       {/* Background blobs */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-br from-green-500/10 to-cyan-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10"></div>
+      <div className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-green-500/5 to-cyan-500/5 blur-3xl dark:from-green-500/10 dark:to-cyan-500/10"></div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold">
             Everything You Need to Stay Connected
           </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-xl text-slate-600 dark:text-gray-300">
             Powerful features designed to help you share, connect, and grow your social presence.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <div
                 key={index}
-                className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-gray-800 hover:border-transparent hover:shadow-xl transition-all duration-300 group"
-                style={{
-                  boxShadow: '0 0 0 0 rgba(0,0,0,0)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(59, 130, 246, 0.1)`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,0,0,0)';
-                }}
+                className="group rounded-2xl border border-slate-200 bg-white/80 p-6 shadow hover:-translate-y-1 hover:border-transparent hover:shadow-xl transition-all duration-300 dark:border-gray-800 dark:bg-gray-900/50"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-gradient-to-br ${feature.gradient} shadow-lg ${feature.shadow}`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${feature.gradient} shadow-lg ${feature.shadow}`}>
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-blue-400 group-hover:to-cyan-400 transition-all">
+                <h3 className="mb-2 text-lg font-semibold transition-all group-hover:bg-linear-to-r group-hover:from-blue-500 group-hover:to-cyan-400 group-hover:bg-clip-text group-hover:text-transparent">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed dark:text-gray-400">
                   {feature.description}
                 </p>
               </div>

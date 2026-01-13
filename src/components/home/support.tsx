@@ -50,36 +50,36 @@ const supportOptions = [
 
 const Support = () => {
   return (
-    <section id="support" className="py-24 bg-black relative overflow-hidden">
+    <section id="support" className="relative overflow-hidden bg-white py-24 text-slate-900 transition-colors dark:bg-black dark:text-white">
       {/* Background effects */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10"></div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold">
             We're Here to Help
           </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-xl text-slate-600 dark:text-gray-300">
             Get the support you need, whenever you need it. Our team is ready to assist you.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {supportOptions.map((option, index) => {
             const Icon = option.icon;
             return (
               <Link
                 key={index}
                 href={option.link}
-                className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-gray-800 hover:border-transparent hover:shadow-xl transition-all duration-300 group"
+                className="group rounded-2xl border border-slate-200 bg-white/80 p-6 text-left shadow transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl dark:border-gray-800 dark:bg-gray-900/50"
               >
-                <div className={`w-12 h-12 bg-gradient-to-br ${option.gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${option.gradient} shadow-lg transition-transform group-hover:scale-110`}>
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-blue-400 group-hover:to-cyan-400 transition-all">
+                <h3 className="mb-2 text-lg font-semibold transition-all group-hover:bg-linear-to-r group-hover:from-blue-500 group-hover:to-cyan-400 group-hover:bg-clip-text group-hover:text-transparent">
                   {option.title}
                 </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed dark:text-gray-400">
                   {option.description}
                 </p>
               </Link>
@@ -87,16 +87,16 @@ const Support = () => {
           })}
         </div>
 
-        <div className="mt-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl p-8 md:p-12 text-white text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
-          <div className="relative z-10">
+        <div className="relative mt-16 overflow-hidden rounded-3xl bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-center text-white shadow-lg md:p-12">
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
+          <div className="relative z-10 space-y-6">
             <h3 className="text-2xl font-bold mb-4">Still have questions?</h3>
-            <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+            <p className="mx-auto mb-6 max-w-2xl text-blue-100">
               Don't hesitate to reach out. Our support team is available around the clock to help you.
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-semibold text-slate-900 transition-colors hover:bg-gray-100"
             >
               Contact Support
             </Link>

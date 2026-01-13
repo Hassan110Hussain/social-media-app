@@ -7,7 +7,7 @@ import Footer from './footer';
 
 const Home = () => {
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-black dark:text-white">
       <Header />
       <Hero />
       <Features />

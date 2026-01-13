@@ -48,10 +48,10 @@ const ForgetPassword = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
       <header className="space-y-1">
-        <h1 className="text-3xl font-bold text-white">Forgot password?</h1>
-        <p className="text-sm text-gray-300">
+        <h1 className="text-3xl font-bold">Forgot password?</h1>
+        <p className="text-sm text-slate-500 dark:text-gray-300">
           Enter your email address and we'll send you a link to reset your password.
         </p>
       </header>
@@ -59,20 +59,20 @@ const ForgetPassword = () => {
       {!isEmailSent ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block space-y-1.5 text-sm">
-            <span className="text-white font-medium">Email</span>
+            <span className="font-medium text-slate-800 dark:text-white">Email</span>
             <input
               required
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-transparent focus:ring-2 focus:ring-orange-500 transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
               placeholder="you@example.com"
             />
           </label>
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+            className="w-full rounded-xl bg-linear-to-r from-orange-500 via-yellow-500 to-orange-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             disabled={isLoading}
           >
             {isLoading ? 'Sending…' : 'Send reset link'}
@@ -92,7 +92,7 @@ const ForgetPassword = () => {
       <div className="text-center text-sm">
         <Link
           href="/login"
-          className="text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login
         </Link>

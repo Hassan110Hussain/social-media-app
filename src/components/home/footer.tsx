@@ -40,18 +40,20 @@ const socialLinks = [
 
 const Footer = () => {
   return (
-    <footer className="bg-black border-t border-gray-800 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 mb-8">
+    <footer className="border-t border-slate-200 bg-white text-slate-600 transition-colors dark:border-gray-800 dark:bg-black dark:text-gray-300">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-6">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/50">
-                <MessageCircle className="w-5 h-5 text-white" />
+            <Link href="/" className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 via-cyan-500 to-blue-600 shadow-lg shadow-blue-500/50">
+                <MessageCircle className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">SocialHub</span>
+              <span className="bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 bg-clip-text text-xl font-bold text-transparent">
+                SocialHub
+              </span>
             </Link>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="mb-4 text-sm text-slate-500 dark:text-gray-400">
               Connect, share, and grow with millions of users worldwide. Your social world awaits.
             </p>
             <div className="flex gap-4">
@@ -62,9 +64,9 @@ const Footer = () => {
                     key={index}
                     href={social.href}
                     aria-label={social.label}
-                    className={`w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center hover:bg-gradient-to-br ${social.gradient} transition-all shadow-lg hover:shadow-${social.gradient.split('-')[1]}-500/50`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-all hover:bg-linear-to-br ${social.gradient} hover:text-white dark:bg-gray-900`}
                   >
-                    <Icon className="w-5 h-5 text-white" />
+                    <Icon className="h-5 w-5" />
                   </Link>
                 );
               })}
@@ -73,11 +75,11 @@ const Footer = () => {
 
           {/* Product */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Product</h3>
-            <ul className="space-y-2">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">Product</h3>
+            <ul className="space-y-2 text-sm">
               {footerLinks.product.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="text-sm hover:text-blue-400 transition-colors">
+                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -87,11 +89,11 @@ const Footer = () => {
 
           {/* Company */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Company</h3>
-            <ul className="space-y-2">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">Company</h3>
+            <ul className="space-y-2 text-sm">
               {footerLinks.company.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="text-sm hover:text-blue-400 transition-colors">
+                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -101,11 +103,11 @@ const Footer = () => {
 
           {/* Resources */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">Resources</h3>
+            <ul className="space-y-2 text-sm">
               {footerLinks.resources.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="text-sm hover:text-blue-400 transition-colors">
+                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -115,11 +117,11 @@ const Footer = () => {
 
           {/* Legal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">Legal</h3>
+            <ul className="space-y-2 text-sm">
               {footerLinks.legal.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="text-sm hover:text-blue-400 transition-colors">
+                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -128,15 +130,15 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-gray-400">
+        <div className="flex flex-col items-center justify-between border-t border-slate-200 pt-8 text-sm text-slate-500 dark:border-gray-800 dark:text-gray-400 md:flex-row">
+          <p>
             © {new Date().getFullYear()} SocialHub. All rights reserved.
           </p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="/login" className="text-sm hover:text-blue-400 transition-colors">
+          <div className="mt-4 flex gap-6 md:mt-0">
+            <Link href="/login" className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign In
             </Link>
-            <Link href="/sign-up" className="text-sm hover:text-blue-400 transition-colors">
+            <Link href="/sign-up" className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign Up
             </Link>
           </div>

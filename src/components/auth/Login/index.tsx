@@ -73,33 +73,33 @@ const Login = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
       <header className="space-y-1">
-        <h1 className="text-3xl font-bold text-white">Welcome back</h1>
-        <p className="text-sm text-gray-300">
+        <h1 className="text-3xl font-bold">Welcome back</h1>
+        <p className="text-sm text-slate-500 dark:text-gray-300">
           Login with your email and password or continue with a provider.
         </p>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5 text-sm">
-          <span className="text-white font-medium">Email</span>
+          <span className="font-medium text-slate-800 dark:text-white">Email</span>
           <input
             required
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="you@example.com"
           />
         </label>
 
         <label className="block space-y-1.5 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-white font-medium">Password</span>
+            <span className="font-medium text-slate-800 dark:text-white">Password</span>
             <Link
               href="/forget-password"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
             >
               Forgot password?
             </Link>
@@ -110,14 +110,14 @@ const Login = () => {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="••••••••"
           />
         </label>
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Please wait…' : 'Login'}
@@ -129,7 +129,7 @@ const Login = () => {
           <button
             key={provider.id}
             type="button"
-            className="w-full rounded-xl border border-gray-700 bg-gray-900/30 backdrop-blur-sm px-4 py-3 text-sm font-medium text-white transition-all hover:border-gray-600 hover:bg-gray-800/50"
+            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-medium text-slate-900 transition-all hover:border-blue-200 hover:bg-white dark:border-gray-700 dark:bg-gray-900/30 dark:text-white dark:hover:border-gray-600 dark:hover:bg-gray-800/50"
             onClick={() => handleOAuth(provider.id)}
             disabled={isLoading}
           >
