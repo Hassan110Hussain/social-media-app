@@ -5,7 +5,7 @@ import Working from './working';
 import Support from './support';
 import Footer from './footer';
 
-const Home = () => {
+const LandingPage = () => {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-black dark:text-white">
       <Header />
@@ -18,4 +18,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default LandingPage;
