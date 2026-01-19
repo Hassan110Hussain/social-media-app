@@ -2,6 +2,7 @@
 
 import { HelpCircle, Mail, MessageSquare, BookOpen, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { ROUTES } from '@/utils/constants';
 
 const supportOptions = [
   {
@@ -95,7 +96,7 @@ const Support = () => {
               Don't hesitate to reach out. Our support team is available around the clock to help you.
             </p>
             <Link
-              href="/login"
+              href={ROUTES.login}
               className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-semibold text-slate-900 transition-colors hover:bg-gray-100"
             >
               Contact Support

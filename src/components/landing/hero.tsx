@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { TrendingUp } from 'lucide-react';
+import { ROUTES } from '@/utils/constants';
 
 const Hero = () => {
   return (
@@ -46,7 +47,7 @@ const Hero = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col gap-4 sm:flex-row lg:justify-start">
               <Link
-                href="/sign-up"
+                href={ROUTES.signUp}
                 className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 hover:shadow-blue-500/70"
               >
                 <span className="relative z-10">Get Started</span>
@@ -54,7 +55,7 @@ const Hero = () => {
               </Link>
               
               <Link
-                href="/login"
+                href={ROUTES.login}
                 className="inline-flex items-center justify-center rounded-2xl border-2 border-slate-200 bg-white/70 px-8 py-4 text-base font-semibold text-slate-800 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 dark:border-gray-700 dark:bg-black/40 dark:text-white dark:hover:text-blue-400"
               >
                 Sign In

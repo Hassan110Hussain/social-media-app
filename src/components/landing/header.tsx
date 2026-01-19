@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
+import { ROUTES } from '@/utils/constants';
 import ThemeToggle from './theme-toggle';
 
 const Header = () => {
@@ -10,7 +11,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={ROUTES.home} className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 via-cyan-500 to-blue-600 shadow-lg shadow-blue-500/50">
               <MessageCircle className="h-5 w-5 text-white" />
             </div>
@@ -45,13 +46,13 @@ const Header = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link
-              href="/login"
+              href={ROUTES.login}
               className="rounded-lg border-2 border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-white"
             >
               Sign In
             </Link>
             <Link
-              href="/sign-up"
+              href={ROUTES.signUp}
               className="rounded-lg bg-linear-to-r from-purple-500 via-pink-500 to-red-500 px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/50"
             >
               Get Started

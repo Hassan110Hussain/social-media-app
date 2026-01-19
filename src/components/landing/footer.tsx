@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { MessageCircle, Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
+import { ROUTES } from '@/utils/constants';
 
 const footerLinks = {
   product: [
@@ -45,7 +46,7 @@ const Footer = () => {
         <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-6">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="mb-4 flex items-center gap-2">
+            <Link href={ROUTES.home} className="mb-4 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 via-cyan-500 to-blue-600 shadow-lg shadow-blue-500/50">
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
@@ -135,10 +136,10 @@ const Footer = () => {
             © {new Date().getFullYear()} SocialHub. All rights reserved.
           </p>
           <div className="mt-4 flex gap-6 md:mt-0">
-            <Link href="/login" className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+            <Link href={ROUTES.login} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign In
             </Link>
-            <Link href="/sign-up" className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+            <Link href={ROUTES.signUp} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign Up
             </Link>
           </div>

@@ -2,7 +2,9 @@
 
 import { FormEvent, useCallback, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { ROUTES } from '@/utils/constants';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
 
@@ -11,7 +13,18 @@ const oauthProviders = [
   { label: 'Continue with GitHub', id: 'github' as const },
 ];
 
+const providerClasses: Record<
+  (typeof oauthProviders)[number]['id'],
+  string
+> = {
+  google:
+    'bg-blue-800 text-white border border-[#4285F4] hover:bg-blue-600 dark:bg-blue-800 dark:text-white dark:border-[#4285F4] dark:hover:bg-blue-600',
+  github:
+    'bg-gray-800 text-white border border-[#24292e] hover:bg-gray-700 dark:bg-gray-800 dark:text-white dark:border-[#24292e] dark:hover:bg-gray-700',
+};
+
 const Login = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +46,9 @@ const Login = () => {
 
       setMessage({ type: 'success', text: 'Logged in successfully.' });
       console.log('Logged in user:', data.user);
+
+      // Redirect to dashboard home after successful login
+      router.push(ROUTES.dashboardHome);
     } catch (error) {
       const err = error as { message?: string };
       setMessage({
@@ -51,7 +67,7 @@ const Login = () => {
     try {
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback`
+          ? `${window.location.origin}${ROUTES.authCallback}`
           : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
@@ -98,7 +114,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <span className="font-medium text-slate-800 dark:text-white">Password</span>
             <Link
-              href="/forget-password"
+              href={ROUTES.forgetPassword}
               className="text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
             >
               Forgot password?
@@ -129,7 +145,7 @@ const Login = () => {
           <button
             key={provider.id}
             type="button"
-            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-medium text-slate-900 transition-all hover:border-blue-200 hover:bg-white dark:border-gray-700 dark:bg-gray-900/30 dark:text-white dark:hover:border-gray-600 dark:hover:bg-gray-800/50"
+            className={`w-full rounded-xl px-4 py-3 text-sm font-medium transition-all hover:scale-[1.01] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 ${providerClasses[provider.id]}`}
             onClick={() => handleOAuth(provider.id)}
             disabled={isLoading}
           >

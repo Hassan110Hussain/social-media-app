@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { ROUTES } from '@/utils/constants';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
 
@@ -97,7 +98,7 @@ const ResetPassword = () => {
       });
 
       setTimeout(() => {
-        router.push('/login');
+        router.push(ROUTES.login);
       }, 2000);
     } catch (error) {
       const err = error as { message?: string };
@@ -132,7 +133,7 @@ const ResetPassword = () => {
 
         <div className="text-center">
           <Link
-            href="/forget-password"
+            href={ROUTES.forgetPassword}
             className="inline-block rounded-xl bg-linear-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-lg hover:shadow-red-500/50"
           >
             Request new reset link
@@ -189,7 +190,7 @@ const ResetPassword = () => {
 
       <div className="text-center text-sm">
         <Link
-          href="/login"
+          href={ROUTES.login}
           className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login

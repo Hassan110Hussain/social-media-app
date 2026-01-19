@@ -3,6 +3,7 @@ import "./globals.css";
 import NextLoader from "./nextLoader";
 import NoInternetWrapper from "./noInternet";
 import { Toaster } from "@/components/ui/sonner";
+import SignOutProviderWrapper from "@/components/providers/SignOutProviderWrapper";
 
 export const metadata: Metadata = {
   title: "Social Media Web App",
@@ -47,8 +48,10 @@ export default function RootLayout({
         />
          <NextLoader />
         <NoInternetWrapper>
-          {children}
-          </NoInternetWrapper>
+          <SignOutProviderWrapper>
+            {children}
+          </SignOutProviderWrapper>
+        </NoInternetWrapper>
         <Toaster />
       </body>
     </html>

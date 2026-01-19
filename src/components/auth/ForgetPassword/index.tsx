@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { ROUTES } from '@/utils/constants';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
 
@@ -22,7 +23,7 @@ const ForgetPassword = () => {
     try {
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/reset-password`
+          ? `${window.location.origin}${ROUTES.resetPassword}`
           : undefined;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -91,7 +92,7 @@ const ForgetPassword = () => {
 
       <div className="text-center text-sm">
         <Link
-          href="/login"
+          href={ROUTES.login}
           className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login
