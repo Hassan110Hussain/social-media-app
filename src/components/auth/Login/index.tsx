@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
-
-type Message = { type: 'success' | 'error'; text: string } | null;
+import type { Message } from '@/types/api';
 
 const oauthProviders = [
   { label: 'Continue with Google', id: 'google' as const },
@@ -25,6 +24,7 @@ const providerClasses: Record<
 
 const Login = () => {
   const router = useRouter();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,13 +42,27 @@ const Login = () => {
         email,
         password,
       });
+
       if (error) throw error;
+      if (!data.user) throw new Error('Login failed');
 
-      setMessage({ type: 'success', text: 'Logged in successfully.' });
-      console.log('Logged in user:', data.user);
+      // Fetch onboarding status
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('first_name, last_name, username')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-      // Redirect to dashboard home after successful login
-      router.push(ROUTES.dashboardHome);
+      if (profileError) throw profileError;
+
+      const hasCompletedOnboarding =
+        !!profile?.first_name && !!profile?.last_name && !!profile?.username;
+
+      router.push(
+        hasCompletedOnboarding
+          ? ROUTES.dashboardHome
+          : ROUTES.onboarding
+      );
     } catch (error) {
       const err = error as { message?: string };
       setMessage({
@@ -60,40 +74,41 @@ const Login = () => {
     }
   };
 
-  const handleOAuth = useCallback(async (provider: 'google' | 'github') => {
-    resetFeedback();
-    setIsLoading(true);
+  const handleOAuth = useCallback(
+    async (provider: 'google' | 'github') => {
+      resetFeedback();
+      setIsLoading(true);
 
-    try {
-      const redirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}${ROUTES.authCallback}`
-          : undefined;
+      try {
+        const redirectTo =
+          typeof window !== 'undefined'
+            ? `${window.location.origin}${ROUTES.authCallback}`
+            : undefined;
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo },
-      });
-      if (error) throw error;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo },
+        });
 
-      setMessage({
-        type: 'success',
-        text: 'Redirecting to provider…',
-      });
-    } catch (error) {
-      const err = error as { message?: string };
-      setMessage({ type: 'error', text: err.message ?? 'OAuth failed.' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        if (error) throw error;
+      } catch (error) {
+        const err = error as { message?: string };
+        setMessage({
+          type: 'error',
+          text: err.message ?? 'OAuth failed.',
+        });
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   return (
     <div className="space-y-6 text-slate-900 transition-colors dark:text-white">
       <header className="space-y-1">
         <h1 className="text-3xl font-bold">Welcome back</h1>
         <p className="text-sm text-slate-500 dark:text-gray-300">
-          Login with your email and password or continue with a provider.
+          Login with email or continue with a provider.
         </p>
       </header>
 
@@ -104,36 +119,37 @@ const Login = () => {
             required
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="you@example.com"
           />
         </label>
 
         <label className="block space-y-1.5 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-slate-800 dark:text-white">Password</span>
-            <Link
-              href={ROUTES.forgetPassword}
-              className="text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          <span className="font-medium text-slate-800 dark:text-white">Password</span>
           <input
             required
-            minLength={6}
             type="password"
+            minLength={6}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
             placeholder="••••••••"
           />
         </label>
 
+        <div className="flex justify-end">
+          <Link
+            href={ROUTES.forgetPassword}
+            className="text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <button
           type="submit"
-          className="w-full rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Please wait…' : 'Login'}
@@ -152,6 +168,16 @@ const Login = () => {
             {provider.label}
           </button>
         ))}
+      </div>
+
+      <div className="text-center text-sm">
+        <span className="text-slate-600 dark:text-gray-400">Don't have an account? </span>
+        <Link
+          href={ROUTES.signUp}
+          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          Sign up
+        </Link>
       </div>
 
       {message && (

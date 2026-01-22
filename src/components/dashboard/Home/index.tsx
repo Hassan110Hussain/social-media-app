@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import type { FeedFilter, Post, SuggestedProfile } from "@/types/api";
-import { mockPosts, suggestedProfiles } from "@/data/dummyData";
 import ICONS from "@/components/assets/icons";
-import { createPost, fetchFeedPosts, uploadPostImage } from "@/lib/posts";
+import { createPost, fetchFeedPosts, uploadPostImage, toggleLikePost, deletePost } from "@/lib/posts";
+import { supabase } from "@/lib/supabase";
+import DeleteModal from "@/components/common/DeleteModal";
 
 const Home = () => {
   const [feedFilter, setFeedFilter] = useState<FeedFilter>("for-you");
@@ -17,12 +18,14 @@ const Home = () => {
   const [isCreatingPost, setIsCreatingPost] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    setProfiles(suggestedProfiles);
-  }, []);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -31,19 +34,38 @@ const Home = () => {
         setPostsError(null);
 
         const feedPosts = await fetchFeedPosts();
-
-        // Fallback to mock posts if backend returns nothing
-        setPosts(feedPosts.length > 0 ? feedPosts : mockPosts);
+        setPosts(feedPosts);
       } catch (error) {
         console.error("Failed to load posts:", error);
         setPostsError("Unable to load posts right now. Please try again.");
-        setPosts(mockPosts);
+        setPosts([]);
       } finally {
         setIsLoadingPosts(false);
       }
     };
 
+    const loadCurrentUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+          const { data: profile } = await supabase
+            .from("users")
+            .select("avatar_url")
+            .eq("id", user.id)
+            .maybeSingle();
+          
+          if (profile?.avatar_url) {
+            setCurrentUserAvatar(profile.avatar_url);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load current user profile:", error);
+      }
+    };
+
     void loadPosts();
+    void loadCurrentUserProfile();
   }, []);
 
   const visiblePosts = useMemo(() => {
@@ -53,7 +75,9 @@ const Home = () => {
     return posts;
   }, [feedFilter, posts]);
 
-  const toggleLike = (postId: string) => {
+  const toggleLike = async (postId: string) => {
+    // Optimistic update
+    const previousPosts = [...posts];
     setPosts((current) =>
       current.map((post) =>
         post.id === postId
@@ -65,6 +89,17 @@ const Home = () => {
           : post
       )
     );
+
+    try {
+      await toggleLikePost(postId);
+      // Refresh posts to get accurate like count and status
+      const updatedPosts = await fetchFeedPosts();
+      setPosts(updatedPosts);
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+      // Revert optimistic update on error
+      setPosts(previousPosts);
+    }
   };
 
   const toggleFollowProfile = (profileId: string) => {
@@ -95,7 +130,7 @@ const Home = () => {
 
       // Refresh feed so the new post appears at the top
       const updatedPosts = await fetchFeedPosts();
-      setPosts(updatedPosts.length > 0 ? updatedPosts : mockPosts);
+      setPosts(updatedPosts);
 
       setComposerContent("");
       setSelectedFile(null);
@@ -123,6 +158,45 @@ const Home = () => {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+    
+    try {
+      await deletePost(postToDelete.id);
+      // Remove the deleted post from the list
+      setPosts((current) => current.filter((post) => post.id !== postToDelete.id));
+      setPostToDelete(null);
+      setDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      // Error is handled in the modal
+      throw error;
+    }
+  };
+
+  const openDeleteModal = (post: Post) => {
+    setPostToDelete(post);
+    setDeleteModalOpen(true);
+    setOpenMenuId(null);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openMenuId]);
+
   return (
     <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto flex max-w-7xl gap-3 sm:gap-4 md:gap-5 lg:gap-6">
@@ -133,10 +207,14 @@ const Home = () => {
             <div className="flex items-start gap-3">
               <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-800">
                 <Image
-                  src={ICONS.solid}
+                  src={currentUserAvatar}
                   alt="Your profile"
                   fill
                   className="object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = ICONS.land;
+                  }}
                 />
               </div>
               <div className="flex-1 space-y-2">
@@ -241,10 +319,14 @@ const Home = () => {
                   <div className="flex min-w-0 items-start gap-3 flex-1">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800 sm:h-10 sm:w-10">
                       <Image
-                        src={ICONS.solid}
+                        src={post.avatarUrl || ICONS.land}
                         alt={post.author}
                         fill
                         className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = ICONS.land;
+                        }}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -264,31 +346,51 @@ const Home = () => {
                               : "bg-blue-500/10 text-blue-500"
                           }`}
                         >
-                          {post.following ? "Following" : "Suggested"}
+                          {post.following ? "Following" : "Featured"}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100 shrink-0"
-                    aria-label="More options"
-                  >
-                    <span className="inline-block h-1 w-1 rounded-full bg-current" />
-                    <span className="mx-0.5 inline-block h-1 w-1 rounded-full bg-current" />
-                    <span className="inline-block h-1 w-1 rounded-full bg-current" />
-                  </button>
+                  <div className="relative shrink-0" ref={menuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
+                      className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                      aria-label="More options"
+                    >
+                      <span className="inline-block h-1 w-1 rounded-full bg-current" />
+                      <span className="mx-0.5 inline-block h-1 w-1 rounded-full bg-current" />
+                      <span className="inline-block h-1 w-1 rounded-full bg-current" />
+                    </button>
+                    {openMenuId === post.id && currentUserId === post.userId && (
+                      <div className="absolute right-0 top-full mt-1 z-10 min-w-[120px] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => openDeleteModal(post)}
+                          className="w-full px-4 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </header>
 
                 {/* Post media */}
-                <div className="relative w-full h-[500px] bg-slate-900/90">
-                  <Image
-                    src={ICONS.land}
-                    alt={post.caption}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+                {post.imageUrl && (
+                  <div className="relative w-full h-[500px] bg-slate-900/90">
+                    <Image
+                      src={post.imageUrl}
+                      alt={post.caption}
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = ICONS.solid;
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Post actions */}
                 <div className="flex flex-1 flex-col justify-between space-y-2 px-4 py-3 sm:px-5 sm:py-4">
@@ -385,45 +487,51 @@ const Home = () => {
             </div>
 
             <div className="space-y-3">
-              {profiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800">
-                      <Image
-                        src={ICONS.solid}
-                        alt={profile.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {profile.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {profile.handle}
-                      </p>
-                      <p className="truncate text-[11px] text-slate-400 dark:text-slate-500">
-                        {profile.reason}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleFollowProfile(profile.id)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${
-                      profile.isFollowing
-                        ? "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                        : "bg-blue-600 text-white shadow-sm hover:bg-blue-500"
-                    }`}
+              {profiles.length > 0 ? (
+                profiles.map((profile) => (
+                  <div
+                    key={profile.id}
+                    className="flex items-center justify-between gap-3"
                   >
-                    {profile.isFollowing ? "Following" : "Follow"}
-                  </button>
-                </div>
-              ))}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800">
+                        <Image
+                          src={ICONS.view}
+                          alt={profile.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {profile.name}
+                        </p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {profile.handle}
+                        </p>
+                        <p className="truncate text-[11px] text-slate-400 dark:text-slate-500">
+                          {profile.reason}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleFollowProfile(profile.id)}
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                        profile.isFollowing
+                          ? "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          : "bg-blue-600 text-white shadow-sm hover:bg-blue-500"
+                      }`}
+                    >
+                      {profile.isFollowing ? "Following" : "Follow"}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  No suggested profiles at the moment.
+                </p>
+              )}
             </div>
           </section>
 
@@ -438,6 +546,15 @@ const Home = () => {
           </section>
         </aside>
       </div>
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setPostToDelete(null);
+        }}
+        onConfirm={handleDeletePost}
+        postAuthor={postToDelete?.author}
+      />
     </div>
   );
 };

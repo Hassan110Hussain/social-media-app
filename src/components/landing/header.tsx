@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
-import ThemeToggle from './theme-toggle';
+import ThemeToggle from '../../app/theme-toggle';
 
 const Header = () => {
   return (

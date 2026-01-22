@@ -12,6 +12,7 @@ export type Post = {
   timeAgo: string;
   caption: string;
   following: boolean;
+  userId: string;
 };
 
 export type SuggestedProfile = {
@@ -21,5 +22,110 @@ export type SuggestedProfile = {
   avatarUrl: string;
   isFollowing: boolean;
   reason: string;
+};
+
+// Auth types
+export type Message = { type: 'success' | 'error'; text: string } | null;
+
+// Dashboard component types
+export type Reel = {
+  id: string;
+  title: string;
+  creator: string;
+  category: string;
+  coverUrl: string;
+  duration: string;
+  likes: number;
+  comments: number;
+  saves: number;
+  views: number;
+  liked?: boolean;
+  saved?: boolean;
+};
+
+export type Board = {
+  id: string;
+  title: string;
+  category: string;
+  coverUrl: string;
+  items: number;
+  collaborators: number;
+  updated: string;
+  pinned?: boolean;
+};
+
+export type ChatMessage = {
+  id: string;
+  from: "you" | "them";
+  text: string;
+  time: string;
+};
+
+export type Chat = {
+  id: string;
+  name: string;
+  handle: string;
+  status: "online" | "offline";
+  avatarUrl: string;
+  lastActive: string;
+  unread: number;
+  messages: ChatMessage[];
+};
+
+export type ExploreItem = {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  description: string;
+  coverUrl: string;
+  gradient: string;
+  likes: number;
+  saves: number;
+  views: number;
+};
+
+// Posts API types
+export type CreatePostInput = {
+  content: string;
+  imageUrl?: string | null;
+};
+
+export type SupabaseUser = {
+  id: string;
+  username: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url: string | null;
+};
+
+export type SupabaseCountWrapper = {
+  count: number | null;
+};
+
+export type SupabasePostRow = {
+  id: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  user_id?: string;
+  users?: SupabaseUser[];
+  likes?: SupabaseCountWrapper[] | null;
+  comments?: SupabaseCountWrapper[] | null;
+  user_liked?: { id: string }[] | null;
+};
+
+// User profile types
+export type UserProfile = {
+  id: string;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+  email?: string;
+  date_of_birth?: string | null;
+  avatar_url: string | null;
+  bio?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 

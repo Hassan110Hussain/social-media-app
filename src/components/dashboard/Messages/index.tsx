@@ -2,24 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-
-type ChatMessage = {
-  id: string;
-  from: "you" | "them";
-  text: string;
-  time: string;
-};
-
-type Chat = {
-  id: string;
-  name: string;
-  handle: string;
-  status: "online" | "offline";
-  avatarUrl: string;
-  lastActive: string;
-  unread: number;
-  messages: ChatMessage[];
-};
+import type { ChatMessage, Chat } from "@/types/api";
 
 const initialChats: Chat[] = [
   {

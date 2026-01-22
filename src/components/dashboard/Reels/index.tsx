@@ -2,21 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-
-type Reel = {
-  id: string;
-  title: string;
-  creator: string;
-  category: string;
-  coverUrl: string;
-  duration: string;
-  likes: number;
-  comments: number;
-  saves: number;
-  views: number;
-  liked?: boolean;
-  saved?: boolean;
-};
+import type { Reel } from "@/types/api";
 
 const reelSet: Reel[] = [
   {

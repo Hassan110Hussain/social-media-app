@@ -1,5 +1,5 @@
 const ICONS = {
-    solid: '/icons/solid.svg',
+    solid: '/icons/solid.png',
     land: '/icons/elahi.svg',
     view: '/icons/view.svg',
 }

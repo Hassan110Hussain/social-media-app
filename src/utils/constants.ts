@@ -4,6 +4,7 @@ export const ROUTES = {
   signUp: '/sign-up',
   forgetPassword: '/forget-password',
   resetPassword: '/reset-password',
+  onboarding: '/onboarding',
   dashboardHome: '/home',
   authCallback: '/auth/callback',
 } as const;

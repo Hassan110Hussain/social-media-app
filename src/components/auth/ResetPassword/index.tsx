@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
-
-type Message = { type: 'success' | 'error'; text: string } | null;
+import type { Message } from '@/types/api';
 
 const ResetPassword = () => {
   const router = useRouter();

@@ -2,19 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-
-type ExploreItem = {
-  id: string;
-  title: string;
-  category: string;
-  tags: string[];
-  description: string;
-  coverUrl: string;
-  gradient: string;
-  likes: number;
-  saves: number;
-  views: number;
-};
+import type { ExploreItem } from "@/types/api";
 
 const exploreItems: ExploreItem[] = [
   {

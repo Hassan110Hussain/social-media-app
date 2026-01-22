@@ -4,8 +4,7 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
-
-type Message = { type: 'success' | 'error'; text: string } | null;
+import type { Message } from '@/types/api';
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState('');

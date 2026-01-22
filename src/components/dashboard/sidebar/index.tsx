@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import ThemeToggle from '@/components/common/ThemeToggle';
+import ThemeToggle from '@/app/theme-toggle';
 import { useSignOut } from '@/contexts/SignOutContext';
 
 const navItems = [
@@ -141,15 +141,6 @@ const Sidebar = () => {
 
       {/* Profile / footer */}
       <div className="mt-auto space-y-3 border-t border-slate-200/70 pt-3 text-xs text-slate-400 dark:border-slate-800/80 dark:text-slate-500">
-        <button
-          type="button"
-          className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100/90 ml-1 px-2 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-lg leading-none shadow-sm dark:bg-slate-800">
-            +
-          </span>
-          <span className="sr-only">Create board</span>
-        </button>
         
         <div className="flex flex-col items-center gap-2">
           <div className="shrink-0">

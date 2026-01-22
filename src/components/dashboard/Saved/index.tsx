@@ -2,17 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-
-type Board = {
-  id: string;
-  title: string;
-  category: string;
-  coverUrl: string;
-  items: number;
-  collaborators: number;
-  updated: string;
-  pinned?: boolean;
-};
+import type { Board } from "@/types/api";
 
 const initialBoards: Board[] = [
   {

@@ -1,10 +1,10 @@
 'use client';
 
 import { FormEvent, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
-
-type Message = { type: 'success' | 'error'; text: string } | null;
+import type { Message } from '@/types/api';
 
 const oauthProviders = [
   { label: 'Continue with Google', id: 'google' as const },
@@ -22,6 +22,7 @@ const providerClasses: Record<
 };
 
 const SignUp = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,16 +36,30 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
       if (error) throw error;
 
-      setMessage({
-        type: 'success',
-        text: 'Account created. Check your email inbox to confirm.',
-      });
+      // If user is immediately signed in (email confirmation disabled), redirect to onboarding
+      if (data.user) {
+        setMessage({
+          type: 'success',
+          text: 'Account created! Setting up your profile...',
+        });
+        
+        // Redirect to onboarding after a short delay
+        setTimeout(() => {
+          router.push(ROUTES.onboarding);
+        }, 1000);
+      } else {
+        // Email confirmation required
+        setMessage({
+          type: 'success',
+          text: 'Account created. Check your email inbox to confirm.',
+        });
+      }
     } catch (error) {
       const err = error as { message?: string };
       setMessage({

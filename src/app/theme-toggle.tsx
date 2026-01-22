@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 const ThemeToggle = () => {
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // useEffect only runs on the client, so now we can safely show the UI
@@ -13,12 +13,14 @@ const ThemeToggle = () => {
     setMounted(true);
   }, []);
 
+  // Prevent hydration mismatch by returning null until mounted
   if (!mounted) {
     return (
       <button
         type="button"
         aria-label="Toggle theme"
-        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400"
+        disabled
+        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400 opacity-50 cursor-not-allowed"
       >
         <Sun className="h-4 w-4" />
       </button>
