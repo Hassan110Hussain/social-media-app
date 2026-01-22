@@ -1,43 +1,41 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark';
-
-const getPreferredTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'light';
-  const stored = window.localStorage.getItem('theme') as Theme | null;
-  if (stored === 'light' || stored === 'dark') return stored;
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' : 'light';
-};
-
 const ThemeToggle = () => {
-  const [theme, setTheme] = useState<Theme>('light');
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
+  // useEffect only runs on the client, so now we can safely show the UI
   useEffect(() => {
-    setTheme(getPreferredTheme());
+    setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const root = document.documentElement;
-    root.classList.toggle('dark', theme === 'dark');
-    root.dataset.theme = theme;
-    window.localStorage.setItem('theme', theme);
-  }, [theme]);
+  if (!mounted) {
+    return (
+      <button
+        type="button"
+        aria-label="Toggle theme"
+        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400"
+      >
+        <Sun className="h-4 w-4" />
+      </button>
+    );
+  }
+
+  const isDark = resolvedTheme === 'dark';
+  const Icon = isDark ? Sun : Moon;
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(isDark ? 'light' : 'dark');
   };
-
-  const Icon = theme === 'dark' ? Sun : Moon;
 
   return (
     <button
       type="button"
-      aria-label={`Activate ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={`Activate ${isDark ? 'light' : 'dark'} mode`}
       onClick={toggleTheme}
       className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400"
     >

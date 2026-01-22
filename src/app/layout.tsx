@@ -4,6 +4,7 @@ import NextLoader from "./nextLoader";
 import NoInternetWrapper from "./noInternet";
 import { Toaster } from "@/components/ui/sonner";
 import SignOutProviderWrapper from "@/components/providers/SignOutProviderWrapper";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Social Media Web App",
@@ -22,37 +23,23 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const themeInitScript = `
-  (function() {
-    try {
-      const storedTheme = window.localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = storedTheme === 'light' || storedTheme === 'dark'
-        ? storedTheme
-        : (prefersDark ? 'dark' : 'light');
-      const root = document.documentElement;
-      root.classList.toggle('dark', theme === 'dark');
-      root.dataset.theme = theme;
-    } catch (error) {
-      console.warn('Unable to set theme', error);
-    }
-  })();
-  `;
   return (
-    <html lang="en" 
-    suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <script
-          dangerouslySetInnerHTML={{ __html: themeInitScript }}
-        />
-         <NextLoader />
-        <NoInternetWrapper>
-          <SignOutProviderWrapper>
-            {children}
-          </SignOutProviderWrapper>
-        </NoInternetWrapper>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextLoader />
+          <NoInternetWrapper>
+            <SignOutProviderWrapper>
+              {children}
+            </SignOutProviderWrapper>
+          </NoInternetWrapper>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

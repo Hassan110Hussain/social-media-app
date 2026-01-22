@@ -1,21 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-
 import type { FeedFilter, Post, SuggestedProfile } from "@/types/api";
 import { mockPosts, suggestedProfiles } from "@/data/dummyData";
+import ICONS from "@/components/assets/icons";
+import { createPost, fetchFeedPosts, uploadPostImage } from "@/lib/posts";
 
 const Home = () => {
   const [feedFilter, setFeedFilter] = useState<FeedFilter>("for-you");
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<SuggestedProfile[]>([]);
-  const storiesRef = useRef<HTMLDivElement>(null);
-  const [storyIndex, setStoryIndex] = useState(0);
+  const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [composerContent, setComposerContent] = useState<string>("");
+  const [isCreatingPost, setIsCreatingPost] = useState<boolean>(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    setPosts(mockPosts);
     setProfiles(suggestedProfiles);
+  }, []);
+
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        setIsLoadingPosts(true);
+        setPostsError(null);
+
+        const feedPosts = await fetchFeedPosts();
+
+        // Fallback to mock posts if backend returns nothing
+        setPosts(feedPosts.length > 0 ? feedPosts : mockPosts);
+      } catch (error) {
+        console.error("Failed to load posts:", error);
+        setPostsError("Unable to load posts right now. Please try again.");
+        setPosts(mockPosts);
+      } finally {
+        setIsLoadingPosts(false);
+      }
+    };
+
+    void loadPosts();
   }, []);
 
   const visiblePosts = useMemo(() => {
@@ -49,132 +77,115 @@ const Home = () => {
     );
   };
 
-  const scrollStories = (direction: "left" | "right") => {
-    if (!storiesRef.current) return;
-    const container = storiesRef.current;
-    const scrollAmount = 200;
-    const newScrollLeft =
-      direction === "left"
-        ? container.scrollLeft - scrollAmount
-        : container.scrollLeft + scrollAmount;
-    container.scrollTo({ left: newScrollLeft, behavior: "smooth" });
-  };
+  const handleCreatePost = async () => {
+    const trimmed = composerContent.trim();
+    if (!trimmed || isCreatingPost) return;
 
-  const handleStoriesScroll = () => {
-    if (!storiesRef.current) return;
-    const container = storiesRef.current;
-    const scrollLeft = container.scrollLeft;
-    const itemWidth = 80; // Approximate width of each story item
-    const newIndex = Math.round(scrollLeft / itemWidth);
-    setStoryIndex(newIndex);
-  };
+    try {
+      setIsCreatingPost(true);
+      setCreateError(null);
 
-  const canScrollLeft = storyIndex > 0;
-  const canScrollRight = storyIndex < 7; // 8 stories total (0-7)
+      let imageUrl: string | null = null;
+
+      if (selectedFile) {
+        imageUrl = await uploadPostImage(selectedFile);
+      }
+
+      await createPost({ content: trimmed, imageUrl });
+
+      // Refresh feed so the new post appears at the top
+      const updatedPosts = await fetchFeedPosts();
+      setPosts(updatedPosts.length > 0 ? updatedPosts : mockPosts);
+
+      setComposerContent("");
+      setSelectedFile(null);
+    } catch (error) {
+      console.error("Failed to create post:", error);
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Could not publish your post. Please try again.";
+
+      if (
+        message.includes("posts_user_id_fkey") ||
+        message.toLowerCase().includes("foreign key")
+      ) {
+        setCreateError(
+          "Your account profile isn’t fully set up in the database yet (FK constraint). Please sign out/in and try again."
+        );
+      } else if (message.toLowerCase().includes("not authenticated")) {
+        setCreateError("You need to be signed in to post.");
+      } else {
+        setCreateError(message);
+      }
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
 
   return (
     <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto flex max-w-7xl gap-3 sm:gap-4 md:gap-5 lg:gap-6">
         {/* Main feed */}
         <main className="min-w-0 flex-1 space-y-3 sm:space-y-4">
-          {/* Stories slider */}
-          <section className="relative rounded-xl border border-slate-200 bg-white/80 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-none sm:rounded-2xl">
-            <div className="relative flex items-center">
-              {/* Left arrow */}
-              {canScrollLeft && (
-                <button
-                  type="button"
-                  onClick={() => scrollStories("left")}
-                  className="absolute left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-lg transition hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-800 sm:h-10 sm:w-10"
-                  aria-label="Scroll stories left"
-                >
-                  <svg
-                    className="h-5 w-5 text-slate-700 dark:text-slate-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-              )}
-
-              {/* Stories container */}
-              <div
-                ref={storiesRef}
-                onScroll={handleStoriesScroll}
-                className="no-scrollbar flex gap-2 overflow-x-auto px-3 py-3 scroll-smooth sm:gap-3 sm:px-4 sm:py-4"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {[...Array(8)].map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className="flex shrink-0 flex-col items-center gap-1 w-16 sm:w-20 transition-transform hover:scale-105"
-                  >
-                    <div className="relative">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-amber-400 p-[2px] sm:h-14 sm:w-14">
-                        <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-900/95 dark:bg-slate-900">
-                          <span className="text-xs font-semibold text-white">
-                            {index === 0 ? "You" : `Acc ${index}`}
-                          </span>
-                        </div>
-                      </div>
-                      {index === 0 && (
-                        <span className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow ring-2 ring-slate-900 dark:ring-slate-950 sm:h-5 sm:w-5 sm:text-xs">
-                          +
-                        </span>
-                      )}
-                    </div>
-                    <span className="truncate text-xs text-slate-600 dark:text-slate-400">
-                      {index === 0 ? "Your story" : "View story"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Right arrow */}
-              {canScrollRight && (
-                <button
-                  type="button"
-                  onClick={() => scrollStories("right")}
-                  className="absolute right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-lg transition hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-800 sm:h-10 sm:w-10"
-                  aria-label="Scroll stories right"
-                >
-                  <svg
-                    className="h-5 w-5 text-slate-700 dark:text-slate-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            {/* Scroll indicators */}
-            <div className="flex justify-center gap-1 pb-2">
-              {[...Array(8)].map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-1 rounded-full transition-all ${
-                    Math.abs(storyIndex - index) <= 1
-                      ? "w-2 bg-slate-400 dark:bg-slate-500"
-                      : "w-1 bg-slate-200 dark:bg-slate-700"
-                  }`}
+          {/* Composer */}
+          <section className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:rounded-2xl sm:p-4">
+            <div className="flex items-start gap-3">
+              <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-800">
+                <Image
+                  src={ICONS.solid}
+                  alt="Your profile"
+                  fill
+                  className="object-cover"
                 />
-              ))}
+              </div>
+              <div className="flex-1 space-y-2">
+                <textarea
+                  ref={composerRef}
+                  value={composerContent}
+                  onChange={(event) => setComposerContent(event.target.value)}
+                  rows={2}
+                  placeholder="What&apos;s on your mind?"
+                  className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+                />
+
+                {createError && (
+                  <p className="text-xs font-medium text-rose-500">
+                    {createError}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:bg-slate-900">
+                      <span>📷</span>
+                      <span>Attach image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          setSelectedFile(file ?? null);
+                        }}
+                      />
+                    </label>
+                    {selectedFile && (
+                      <span className="truncate max-w-[160px] text-[11px] text-slate-500 dark:text-slate-400">
+                        {selectedFile.name}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreatePost}
+                    disabled={isCreatingPost || !composerContent.trim()}
+                    className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+                  >
+                    {isCreatingPost ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -204,18 +215,22 @@ const Home = () => {
                 Following
               </button>
             </div>
-
-            <button
-              type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md sm:w-auto sm:text-sm"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              New post
-            </button>
           </div>
 
-          {/* Posts feed - Pinterest style grid */}
-          <section className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:gap-6">
+          {/* Posts feed - single column */}
+          <section className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
+            {isLoadingPosts && (
+              <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
+                Loading your feed...
+              </div>
+            )}
+
+            {postsError && !isLoadingPosts && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-center text-xs text-rose-700 shadow-sm shadow-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200">
+                {postsError}
+              </div>
+            )}
+
             {visiblePosts.map((post) => (
               <article
                 key={post.id}
@@ -226,7 +241,7 @@ const Home = () => {
                   <div className="flex min-w-0 items-start gap-3 flex-1">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800 sm:h-10 sm:w-10">
                       <Image
-                        src={post.avatarUrl}
+                        src={ICONS.solid}
                         alt={post.author}
                         fill
                         className="object-cover"
@@ -266,9 +281,9 @@ const Home = () => {
                 </header>
 
                 {/* Post media */}
-                <div className="relative aspect-4/5 w-full bg-slate-900/90">
+                <div className="relative w-full h-[500px] bg-slate-900/90">
                   <Image
-                    src={post.imageUrl}
+                    src={ICONS.land}
                     alt={post.caption}
                     fill
                     className="object-cover"
@@ -378,7 +393,7 @@ const Home = () => {
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800">
                       <Image
-                        src={profile.avatarUrl}
+                        src={ICONS.solid}
                         alt={profile.name}
                         fill
                         className="object-cover"
