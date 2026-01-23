@@ -136,6 +136,16 @@ export type UserProfile = {
 // Notification types
 export type NotificationType = 'like' | 'comment' | 'follow' | 'share';
 
+export type NotificationRow = {
+  id: string;
+  type: "like" | "comment" | "share";
+  created_at: string;
+  post_id: string | null;
+  actor_id: string | null;
+  comment_id: string | null;
+  is_read: boolean;
+};
+
 export type Notification = {
   id: string;
   type: NotificationType;

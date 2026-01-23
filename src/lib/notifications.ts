@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Notification } from "@/types/api";
+import type { Notification, NotificationRow } from "@/types/api";
 import { getCurrentUser } from "@/data/dataForPosts/currentUser";
 import { formatTimeAgo, capitalizeName } from "@/data/dataForPosts/utils";
 
@@ -15,10 +15,14 @@ export async function fetchNotifications(): Promise<Notification[]> {
       created_at,
       post_id,
       actor_id,
+      comment_id,
       is_read
     `)
     .eq("user_id", user.id) // Notifications for the current user
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }) as {
+      data: NotificationRow[] | null;
+      error: any;
+    };
 
   if (notificationsError) {
     console.error("Error fetching notifications:", notificationsError);
@@ -45,33 +49,26 @@ export async function fetchNotifications(): Promise<Notification[]> {
     .select("id, image_url")
     .in("id", postIds);
 
-  // Fetch comment content for comment notifications
-  const commentPostIds = notificationsData
-    .filter((n) => n.type === "comment" && n.post_id)
-    .map((n) => n.post_id!);
-  
-  let commentMap = new Map<string, string>();
-  if (commentPostIds.length > 0) {
-    const { data: commentsData } = await supabase
-      .from("comments")
-      .select("post_id, content, created_at, user_id")
-      .in("post_id", commentPostIds)
-      .order("created_at", { ascending: false });
+  // Fetch comment content using comment_id (correct & efficient)
+const commentIds = notificationsData
+.filter((n) => n.type === "comment" && n.comment_id)
+.map((n) => n.comment_id!);
 
-    if (commentsData) {
-      // Map post_id to the latest comment content by matching actor_id
-      for (const notif of notificationsData) {
-        if (notif.type === "comment" && notif.post_id && notif.actor_id) {
-          const comment = commentsData.find(
-            (c) => c.post_id === notif.post_id && c.user_id === notif.actor_id
-          );
-          if (comment) {
-            commentMap.set(notif.id, comment.content);
-          }
-        }
-      }
-    }
-  }
+const commentMap = new Map<string, string>();
+
+if (commentIds.length > 0) {
+const { data: commentsData } = await supabase
+  .from("comments")
+  .select("id, content")
+  .in("id", commentIds); // ⭐ THIS replaces your old logic
+
+if (commentsData) {
+  commentsData.forEach((c) => {
+    commentMap.set(c.id, c.content);
+  });
+}
+}
+
 
   // Create maps for quick lookup
   const actorMap = new Map(
@@ -109,8 +106,8 @@ export async function fetchNotifications(): Promise<Notification[]> {
     };
 
     // Add comment content if it's a comment notification
-    if (notif.type === "comment") {
-      const commentContent = commentMap.get(notif.id);
+    if (notif.type === "comment" && notif.comment_id) {
+      const commentContent = commentMap.get(notif.comment_id);
       if (commentContent) {
         notification.commentContent = commentContent;
       }

@@ -6,11 +6,15 @@ export async function createComment(postId: string, content: string) {
   const user = await getCurrentUser();
   await ensureUserRowExists();
 
-  const { error } = await supabase.from("comments").insert({
-    post_id: postId,
-    user_id: user.id,
-    content,
-  });
+  const { data: commentData, error } = await supabase
+    .from("comments")
+    .insert({
+      post_id: postId,
+      user_id: user.id,
+      content,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -23,11 +27,12 @@ export async function createComment(postId: string, content: string) {
     .eq("id", postId)
     .single();
 
-  if (post && post.user_id !== user.id) {
+  if (post && post.user_id !== user.id && commentData) {
     await supabase.from("notifications").insert({
       user_id: post.user_id, // receiver
       actor_id: user.id, // who commented
       post_id: postId,
+      comment_id: commentData.id, // ⭐ ADD THIS
       type: "comment",
     });
   }
