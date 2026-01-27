@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import type { Post, UserProfile } from "@/types/api";
-import { fetchUserPosts } from "@/lib/posts";
+import type { Post, UserProfile, Comment } from "@/types/api";
+import { fetchUserPosts, fetchComments, createComment, toggleLikePost, toggleSavePost, toggleSharePost } from "@/lib/posts";
 import { fetchCurrentUserProfile, updateUserProfile } from "@/lib/profile";
 import { toggleFollowUser } from "@/lib/follows";
+import Loader from "@/components/common/Loader";
+import PostDetailOverlay from "@/components/common/PostDetailOverlay";
 import ICONS from "@/components/assets/icons";
 import { supabase } from "@/lib/supabase";
 
@@ -28,6 +30,13 @@ const Profile = () => {
   });
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isTogglingFollow, setIsTogglingFollow] = useState<boolean>(false);
+  const [overlayPost, setOverlayPost] = useState<Post | null>(null);
+  const [overlayComments, setOverlayComments] = useState<Comment[]>([]);
+  const [isLoadingOverlayComments, setIsLoadingOverlayComments] = useState<boolean>(false);
+  const [overlayCommentInput, setOverlayCommentInput] = useState<string>("");
+  const [isSubmittingOverlayComment, setIsSubmittingOverlayComment] = useState<boolean>(false);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -60,6 +69,102 @@ const Profile = () => {
 
     void loadProfile();
   }, []);
+
+  // Load current user (for overlay comment form)
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+          const { data: row } = await supabase.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
+          if (row?.avatar_url) setCurrentUserAvatar(row.avatar_url);
+        }
+      } catch (e) {
+        console.error("Failed to load current user:", e);
+      }
+    };
+    void loadCurrentUser();
+  }, []);
+
+  const loadOverlayComments = async (postId: string) => {
+    try {
+      setIsLoadingOverlayComments(true);
+      const list = await fetchComments(postId);
+      setOverlayComments(list);
+    } catch (e) {
+      console.error("Failed to load overlay comments:", e);
+      setOverlayComments([]);
+    } finally {
+      setIsLoadingOverlayComments(false);
+    }
+  };
+
+  const handleOverlayCommentSubmit = async (content: string) => {
+    if (!overlayPost || !content.trim() || isSubmittingOverlayComment) return;
+    try {
+      setIsSubmittingOverlayComment(true);
+      await createComment(overlayPost.id, content.trim());
+      setOverlayCommentInput("");
+      const updated = await fetchComments(overlayPost.id);
+      setOverlayComments(updated);
+      setPosts((prev) => prev.map((p) => (p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p)));
+      setOverlayPost((p) => (p && p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p));
+    } catch (e) {
+      console.error("Failed to submit comment:", e);
+    } finally {
+      setIsSubmittingOverlayComment(false);
+    }
+  };
+
+  const handleOverlayLike = async (postId: string) => {
+    const prevPosts = [...posts];
+    const prevOverlay = overlayPost;
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : null));
+    try {
+      await toggleLikePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle like:", e);
+      setPosts(prevPosts);
+      if (prevOverlay?.id === postId) setOverlayPost(prevOverlay);
+    }
+  };
+
+  const handleOverlaySave = async (postId: string) => {
+    const prevPosts = [...posts];
+    const prevOverlay = overlayPost;
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, saved: !x.saved } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, saved: !p.saved } : null));
+    try {
+      await toggleSavePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle save:", e);
+      setPosts(prevPosts);
+      if (prevOverlay?.id === postId) setOverlayPost(prevOverlay);
+    }
+  };
+
+  const handleOverlayShare = async (postId: string) => {
+    const prevPosts = [...posts];
+    const prevOverlay = overlayPost;
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, shared: !x.shared, shares: x.shared ? x.shares - 1 : x.shares + 1 } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, shared: !p.shared, shares: p.shared ? p.shares - 1 : p.shares + 1 } : null));
+    try {
+      await toggleSharePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle share:", e);
+      setPosts(prevPosts);
+      if (prevOverlay?.id === postId) setOverlayPost(prevOverlay);
+    }
+  };
+
+  const hasEditChanges =
+    profile &&
+    (editForm.username.trim() !== (profile.username ?? "").trim() ||
+      editForm.first_name.trim() !== (profile.first_name ?? "").trim() ||
+      editForm.last_name.trim() !== (profile.last_name ?? "").trim() ||
+      editForm.bio.trim() !== (profile.bio ?? "").trim());
 
   const handleSaveProfile = async () => {
     if (!profile) return;
@@ -106,8 +211,8 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-500 dark:text-slate-400">Loading profile...</p>
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Loader title="Loading profile..." subtitle="Almost there" />
       </div>
     );
   }
@@ -157,7 +262,7 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditing(!isEditing)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                    className="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
                   >
                     {isEditing ? "Cancel" : "Edit Profile"}
                   </button>
@@ -166,7 +271,7 @@ const Profile = () => {
                     type="button"
                     onClick={handleToggleFollow}
                     disabled={isTogglingFollow}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`cursor-pointer rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${
                       profile.isFollowing
                         ? "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                         : "bg-blue-600 hover:bg-blue-500"
@@ -245,8 +350,8 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isSaving || !hasEditChanges}
+                    className="cursor-pointer rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
@@ -278,45 +383,76 @@ const Profile = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <article
-                  key={post.id}
-                  className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-200 backdrop-blur transition hover:-translate-y-[2px] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none"
-                >
-                  {post.imageUrl ? (
-                    <div className="relative aspect-square w-full overflow-hidden bg-slate-900">
-                      <Image
-                        src={post.imageUrl}
-                        alt={post.caption}
-                        fill
-                        className="object-cover transition group-hover:scale-105"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = ICONS.solid;
-                        }}
-                      />
+              {posts.map((post) => {
+                const thumbUrl = post.imageUrls?.length ? post.imageUrls[0] : post.imageUrl;
+                return (
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => {
+                      setOverlayPost(post);
+                      setOverlayCommentInput("");
+                      setOverlayComments([]);
+                    }}
+                    className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white/90 text-left shadow-sm shadow-slate-200 backdrop-blur transition hover:-translate-y-[2px] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none"
+                  >
+                    {thumbUrl ? (
+                      <div className="relative aspect-square w-full overflow-hidden bg-slate-900">
+                        <Image
+                          src={thumbUrl}
+                          alt={post.caption}
+                          fill
+                          className="object-cover transition group-hover:scale-105"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = ICONS.solid;
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-square w-full bg-slate-100 p-4 dark:bg-slate-800">
+                        <p className="line-clamp-6 text-sm text-slate-600 dark:text-slate-300">
+                          {post.caption}
+                        </p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 transition group-hover:opacity-100">
+                      <div className="flex items-center gap-3 text-xs text-white">
+                        <span>♥ {post.likes}</span>
+                        <span>💬 {post.comments}</span>
+                        <span>📤 {post.shares}</span>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="aspect-square w-full bg-slate-100 p-4 dark:bg-slate-800">
-                      <p className="line-clamp-6 text-sm text-slate-600 dark:text-slate-300">
-                        {post.caption}
-                      </p>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 transition group-hover:opacity-100">
-                    <div className="flex items-center gap-3 text-xs text-white">
-                      <span>♥ {post.likes}</span>
-                      <span>💬 {post.comments}</span>
-                      <span>📤 {post.shares}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                    {(post.imageUrls?.length ?? 0) > 1 && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">
+                        {(post.imageUrls?.length ?? 0)} photos
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>
       </div>
+
+      <PostDetailOverlay
+        post={overlayPost}
+        onClose={() => setOverlayPost(null)}
+        comments={overlayComments}
+        isLoadingComments={isLoadingOverlayComments}
+        onOpen={loadOverlayComments}
+        currentUserAvatar={currentUserAvatar}
+        currentUserId={currentUserId}
+        commentInput={overlayCommentInput}
+        onCommentInputChange={setOverlayCommentInput}
+        onSubmitComment={handleOverlayCommentSubmit}
+        isSubmittingComment={isSubmittingOverlayComment}
+        onLike={handleOverlayLike}
+        onShare={handleOverlayShare}
+        onSave={handleOverlaySave}
+      />
     </div>
   );
 };

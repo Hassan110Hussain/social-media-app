@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ICONS from "@/components/assets/icons";
 
 interface SecurityProps {
   onMessage: (message: { type: "success" | "error"; text: string } | null) => void;
@@ -11,6 +12,9 @@ const Security = ({ onMessage }: SecurityProps) => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleChangePassword = async () => {
@@ -99,14 +103,24 @@ const Security = ({ onMessage }: SecurityProps) => {
           <label htmlFor="oldPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Current Password
           </label>
-          <input
-            id="oldPassword"
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-            placeholder="Enter your current password"
-          />
+          <div className="relative">
+            <input
+              id="oldPassword"
+              type={showOldPassword ? "text" : "password"}
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+              placeholder="Enter your current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowOldPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showOldPassword ? "Hide password" : "Show password"}
+            >
+              <img src={showOldPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* New Password */}
@@ -114,14 +128,24 @@ const Security = ({ onMessage }: SecurityProps) => {
           <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             New Password
           </label>
-          <input
-            id="newPassword"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-            placeholder="Enter your new password"
-          />
+          <div className="relative">
+            <input
+              id="newPassword"
+              type={showNewPassword ? "text" : "password"}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+              placeholder="Enter your new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showNewPassword ? "Hide password" : "Show password"}
+            >
+              <img src={showNewPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Must be at least 6 characters</p>
         </div>
 
@@ -130,14 +154,24 @@ const Security = ({ onMessage }: SecurityProps) => {
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Confirm New Password
           </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-            placeholder="Confirm your new password"
-          />
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
+              placeholder="Confirm your new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            >
+              <img src={showConfirmPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Change Password Button */}
@@ -146,7 +180,7 @@ const Security = ({ onMessage }: SecurityProps) => {
             type="button"
             onClick={handleChangePassword}
             disabled={isChangingPassword}
-            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+            className="cursor-pointer rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
           >
             {isChangingPassword ? "Changing Password..." : "Change Password"}
           </button>

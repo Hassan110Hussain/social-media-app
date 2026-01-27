@@ -38,7 +38,7 @@ const NoInternetWrapper = ({ children }: { children: React.ReactNode }) => {
         <Button
           size="sm"
           variant="outline"
-          className="w-40 flex items-center gap-2"
+          className="w-40 flex cursor-pointer items-center gap-2"
           onClick={() => window.location.reload()}
         >
           Try Again <RotateCw className="w-4 h-4" />

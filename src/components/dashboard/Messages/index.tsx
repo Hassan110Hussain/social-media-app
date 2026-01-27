@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { ChatMessage, Chat } from "@/types/api";
 import { fetchConversations, fetchConversationMessages, sendMessage as sendMessageToDb, markConversationAsRead } from "@/lib/messages";
+import Loader from "@/components/common/Loader";
 import ICONS from "@/components/assets/icons";
 
 const Messages = () => {
@@ -114,8 +115,8 @@ const Messages = () => {
 
   return (
     <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl gap-4 lg:gap-6">
-        <aside className="hidden w-80 shrink-0 flex-col rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:flex">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:gap-6">
+        <aside className="flex w-full shrink-0 flex-col rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none lg:w-80">
           <div className="mb-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Inbox</p>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Messages</h2>
@@ -126,7 +127,7 @@ const Messages = () => {
           </div>
           <div className="mt-3 flex flex-1 flex-col gap-2 overflow-y-auto">
             {isLoadingChats ? (
-              <p className="p-3 text-xs text-slate-500 dark:text-slate-400">Loading conversations...</p>
+              <Loader compact title="Loading conversations..." className="m-3" />
             ) : error ? (
               <p className="p-3 text-xs text-rose-500 dark:text-rose-400">{error}</p>
             ) : filteredChats.length === 0 ? (
@@ -139,7 +140,7 @@ const Messages = () => {
                     key={chat.id}
                     type="button"
                     onClick={() => setSelectedId(chat.id)}
-                    className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
                       active ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-100" : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
                     }`}
                   >
@@ -166,7 +167,7 @@ const Messages = () => {
               })
             )}
           </div>
-          <button type="button" className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-slate-800 dark:bg-white dark:text-slate-900">
+          <button type="button" className="mt-3 w-full cursor-pointer rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-slate-800 dark:bg-white dark:text-slate-900">
             + New message
           </button>
         </aside>
@@ -195,10 +196,10 @@ const Messages = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                  <button type="button" className="cursor-pointer rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                     Call
                   </button>
-                  <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                  <button type="button" className="cursor-pointer rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                     Share
                   </button>
                 </div>
@@ -207,7 +208,7 @@ const Messages = () => {
               <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
                 {isLoadingMessages ? (
                   <div className="flex items-center justify-center py-8">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Loading messages...</p>
+                    <Loader title="Loading messages..." subtitle="Almost there" />
                   </div>
                 ) : selectedChat.messages.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
@@ -232,7 +233,7 @@ const Messages = () => {
 
               <footer className="border-t border-slate-200 p-3 dark:border-slate-800 sm:p-4">
                 <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-950">
-                  <button type="button" className="rounded-full px-3 py-2 text-lg transition hover:bg-slate-100 dark:hover:bg-slate-800">😊</button>
+                  <button type="button" className="cursor-pointer rounded-full px-3 py-2 text-lg transition hover:bg-slate-100 dark:hover:bg-slate-800">😊</button>
                   <input
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
@@ -249,7 +250,7 @@ const Messages = () => {
                     type="button" 
                     onClick={sendMessage} 
                     disabled={isSendingMessage || !messageInput.trim()}
-                    className="rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                    className="cursor-pointer rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   >
                     {isSendingMessage ? "Sending..." : "Send"}
                   </button>

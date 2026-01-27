@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FeedFilter, Post, SuggestedProfile } from "@/types/api";
-import { createPost, fetchForYouPosts, fetchFollowingPosts, fetchMyPosts, uploadPostImage, toggleLikePost, toggleSharePost, toggleSavePost, deletePost, createComment, fetchComments } from "@/lib/posts";
+import { createPost, fetchForYouPosts, fetchFollowingPosts, fetchMyPosts, uploadPostImage, toggleLikePost, toggleSharePost, toggleSavePost, deletePost, updatePost, createComment, fetchComments, deleteComment } from "@/lib/posts";
 import type { Comment } from "@/types/api";
 import { supabase } from "@/lib/supabase";
 import DeleteModal from "@/components/common/DeleteModal";
+import EditPostModal from "@/components/common/EditPostModal";
+import Loader from "@/components/common/Loader";
 import ScrollPaginationSentinel from "@/components/common/ScrollPagination";
 import ICONS from "@/components/assets/icons";
 import PostComposer from "./PostComposer";
@@ -16,7 +18,7 @@ import SuggestedProfiles from "./SuggestedProfiles";
 const POSTS_PER_PAGE = 10;
 
 const Home = () => {
-  const [feedFilter, setFeedFilter] = useState<FeedFilter>("for-you");
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>("my-feed");
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<SuggestedProfile[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
@@ -26,17 +28,21 @@ const Home = () => {
   const [composerContent, setComposerContent] = useState<string>("");
   const [isCreatingPost, setIsCreatingPost] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState<boolean>(false);
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
+  const [replyingTo, setReplyingTo] = useState<{ postId: string; commentId: string } | null>(null);
+  const [isDeletingCommentId, setIsDeletingCommentId] = useState<string | null>(null);
 
   // Load initial posts when filter changes
   useEffect(() => {
@@ -274,13 +280,15 @@ const Home = () => {
       setIsCreatingPost(true);
       setCreateError(null);
 
-      let imageUrl: string | null = null;
-
-      if (selectedFile) {
-        imageUrl = await uploadPostImage(selectedFile);
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        imageUrls = await Promise.all(selectedFiles.map((f) => uploadPostImage(f)));
       }
 
-      await createPost({ content: trimmed, imageUrl });
+      await createPost({
+        content: trimmed,
+        ...(imageUrls.length > 0 ? { imageUrls } : {}),
+      });
 
       // Refresh first page to show new post
       const updatedPosts = feedFilter === "following" 
@@ -292,7 +300,7 @@ const Home = () => {
       setHasMore(updatedPosts.length === POSTS_PER_PAGE);
 
       setComposerContent("");
-      setSelectedFile(null);
+      setSelectedFiles([]);
     } catch (error) {
       console.error("Failed to create post:", error);
       const message =
@@ -339,6 +347,30 @@ const Home = () => {
     setOpenMenuId(null);
   };
 
+  const openEditModal = (post: Post) => {
+    setPostToEdit(post);
+    setEditModalOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const handleSaveEdit = async (
+    postId: string,
+    content: string,
+    imageUrl?: string | null
+  ) => {
+    await updatePost(postId, { content, imageUrl });
+    setPosts((current) =>
+      current.map((p) => {
+        if (p.id !== postId) return p;
+        const nextUrl = imageUrl !== undefined ? imageUrl ?? "" : p.imageUrl;
+        const nextUrls = imageUrl !== undefined
+          ? (imageUrl ? [imageUrl] : [])
+          : p.imageUrls ?? (p.imageUrl ? [p.imageUrl] : []);
+        return { ...p, caption: content, imageUrl: nextUrl, imageUrls: nextUrls };
+      })
+    );
+  };
+
   const toggleComments = async (postId: string) => {
     if (openCommentsPostId === postId) {
       setOpenCommentsPostId(null);
@@ -359,27 +391,27 @@ const Home = () => {
     }
   };
 
-  const handleSubmitComment = async (postId: string) => {
-    const content = commentInputs[postId]?.trim();
-    if (!content || isSubmittingComment[postId]) return;
+  const handleSubmitComment = async (
+    postId: string,
+    content: string,
+    parentId?: string | null
+  ) => {
+    const trimmed = content.trim();
+    if (!trimmed || isSubmittingComment[postId]) return;
 
     try {
       setIsSubmittingComment((prev) => ({ ...prev, [postId]: true }));
-      await createComment(postId, content);
-      
-      // Clear input
+      await createComment(postId, trimmed, parentId ?? undefined);
+
       setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
-      
-      // Refresh comments
+      setReplyingTo((prev) => (prev?.postId === postId ? null : prev));
+
       const updatedComments = await fetchComments(postId);
       setComments((prev) => ({ ...prev, [postId]: updatedComments }));
-      
-      // Update comment count in the current post
+
       setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, comments: post.comments + 1 }
-            : post
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments: p.comments + 1 } : p
         )
       );
     } catch (error) {
@@ -389,8 +421,34 @@ const Home = () => {
     }
   };
 
+  const handleStartReply = (postId: string, commentId: string) => {
+    setReplyingTo({ postId, commentId });
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
   const handleCommentInputChange = (postId: string, value: string) => {
     setCommentInputs((prev) => ({ ...prev, [postId]: value }));
+  };
+
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    try {
+      setIsDeletingCommentId(commentId);
+      await deleteComment(commentId);
+      const updatedComments = await fetchComments(postId);
+      setComments((prev) => ({ ...prev, [postId]: updatedComments }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments: Math.max(0, p.comments - 1) } : p
+        )
+      );
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+    } finally {
+      setIsDeletingCommentId(null);
+    }
   };
 
   // Close menu when clicking outside
@@ -417,16 +475,16 @@ const Home = () => {
   }, [openMenuId]);
 
   return (
-    <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-6">
-      <div className="mx-auto flex max-w-7xl gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50/80 to-white px-3 py-4 text-slate-900 transition-colors dark:from-slate-950/50 dark:to-slate-900/80 dark:text-white sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-6">
+      <div className="mx-auto flex max-w-7xl gap-4 sm:gap-5 md:gap-6 lg:gap-8">
         {/* Main feed */}
-        <main className="min-w-0 flex-1 space-y-3 sm:space-y-4">
+        <main className="min-w-0 flex-1 space-y-4 sm:space-y-5">
           {/* Composer */}
           <PostComposer
             composerContent={composerContent}
             setComposerContent={setComposerContent}
-            selectedFile={selectedFile}
-            setSelectedFile={setSelectedFile}
+            selectedFiles={selectedFiles}
+            setSelectedFiles={setSelectedFiles}
             currentUserAvatar={currentUserAvatar}
             isCreatingPost={isCreatingPost}
             createError={createError}
@@ -439,19 +497,18 @@ const Home = () => {
           {/* Posts feed */}
           <section className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
             {isLoadingPosts ? (
-              <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-                Loading your feed...
-              </div>
+              <Loader title="Loading your feed..." subtitle="Almost there" />
             ) : postsError ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-center text-xs text-rose-700 shadow-sm shadow-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200">
-                {postsError}
+              <div className="rounded-2xl border border-rose-200/80 bg-rose-50/90 px-6 py-5 text-center shadow-sm dark:border-rose-800/50 dark:bg-rose-950/40">
+                <p className="text-sm font-medium text-rose-700 dark:text-rose-200">{postsError}</p>
+                <p className="mt-1 text-xs text-rose-600/80 dark:text-rose-300/80">Try refreshing in a moment</p>
               </div>
             ) : visiblePosts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-4 py-10 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-                <p className="font-medium">No posts yet in this view</p>
-                <p className="mt-1 text-xs">
-                  Start following more pages and creators to see their latest
-                  posts here.
+              <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300/80 bg-white/90 px-6 py-14 text-center shadow-sm dark:border-slate-600/60 dark:bg-slate-900/50">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100/80 text-2xl dark:bg-amber-500/10">✨</div>
+                <p className="font-semibold text-slate-700 dark:text-slate-200">No posts yet in this view</p>
+                <p className="mt-2 max-w-sm mx-auto text-center text-sm text-slate-500 dark:text-slate-400">
+                  Start following more pages and creators to see their latest posts here.
                 </p>
               </div>
             ) : (
@@ -469,7 +526,13 @@ const Home = () => {
                     commentInput={commentInputs[post.id] || ""}
                     isLoadingComments={isLoadingComments[post.id] || false}
                     isSubmittingComment={isSubmittingComment[post.id] || false}
+                    replyingToCommentId={replyingTo?.postId === post.id ? replyingTo.commentId : null}
+                    isDeletingCommentId={isDeletingCommentId}
+                    onStartReply={handleStartReply}
+                    onCancelReply={handleCancelReply}
+                    onDeleteComment={handleDeleteComment}
                     onDelete={openDeleteModal}
+                    onEdit={openEditModal}
                     onLike={toggleLike}
                     onShare={toggleShare}
                     onSave={toggleSave}
@@ -502,6 +565,16 @@ const Home = () => {
         }}
         onConfirm={handleDeletePost}
         postAuthor={postToDelete?.author}
+      />
+      <EditPostModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setPostToEdit(null);
+        }}
+        post={postToEdit}
+        onSave={handleSaveEdit}
+        uploadImage={uploadPostImage}
       />
     </div>
   );

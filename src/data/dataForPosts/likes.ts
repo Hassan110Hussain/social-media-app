@@ -23,6 +23,10 @@ export async function likePost(postId: string) {
   });
 
   if (error) {
+    // Duplicate key = already liked (race condition); treat as success
+    if (error.code === "23505" && error.message?.includes("unique_post_like")) {
+      return;
+    }
     throw new Error(error.message);
   }
 

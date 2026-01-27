@@ -39,7 +39,7 @@ const ThemeToggle = () => {
       type="button"
       aria-label={`Activate ${isDark ? 'light' : 'dark'} mode`}
       onClick={toggleTheme}
-      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400"
+      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-slate-900 shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-white dark:hover:border-blue-400"
     >
       <Icon className="h-4 w-4" />
     </button>

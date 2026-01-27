@@ -51,21 +51,21 @@ const supportOptions = [
 
 const Support = () => {
   return (
-    <section id="support" className="relative overflow-hidden bg-white py-24 text-slate-900 transition-colors dark:bg-black dark:text-white">
+    <section id="support" className="relative overflow-hidden bg-white py-12 text-slate-900 transition-colors dark:bg-black dark:text-white sm:py-16 lg:py-24">
       {/* Background effects */}
-      <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10"></div>
+      <div className="absolute top-0 right-0 h-[300px] w-[300px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10 sm:h-[400px] sm:w-[400px]"></div>
       
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 text-4xl font-bold">
+        <div className="mb-8 text-center sm:mb-12 lg:mb-16">
+          <h2 className="mb-3 text-2xl font-bold sm:mb-4 sm:text-3xl lg:text-4xl">
             We're Here to Help
           </h2>
-          <p className="mx-auto max-w-2xl text-xl text-slate-600 dark:text-gray-300">
+          <p className="mx-auto max-w-2xl text-base text-slate-600 dark:text-gray-300 sm:text-lg lg:text-xl">
             Get the support you need, whenever you need it. Our team is ready to assist you.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {supportOptions.map((option, index) => {
             const Icon = option.icon;
             return (
@@ -88,10 +88,10 @@ const Support = () => {
           })}
         </div>
 
-        <div className="relative mt-16 overflow-hidden rounded-3xl bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-center text-white shadow-lg md:p-12">
+        <div className="relative mt-8 overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 p-6 text-center text-white shadow-lg sm:mt-12 sm:rounded-3xl sm:p-8 md:p-12 lg:mt-16">
           <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
-          <div className="relative z-10 space-y-6">
-            <h3 className="text-2xl font-bold mb-4">Still have questions?</h3>
+          <div className="relative z-10 space-y-4 sm:space-y-6">
+            <h3 className="mb-2 text-xl font-bold sm:mb-4 sm:text-2xl">Still have questions?</h3>
             <p className="mx-auto mb-6 max-w-2xl text-blue-100">
               Don't hesitate to reach out. Our support team is available around the clock to help you.
             </p>

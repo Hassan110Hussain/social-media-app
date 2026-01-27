@@ -182,7 +182,7 @@ const Onboarding = () => {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full cursor-pointer rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Saving...' : 'Complete Setup'}

@@ -42,11 +42,11 @@ const socialLinks = [
 const Footer = () => {
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-600 transition-colors dark:border-gray-800 dark:bg-black dark:text-gray-300">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <div className="mb-6 grid grid-cols-2 gap-6 sm:mb-8 sm:gap-8 md:grid-cols-2 lg:grid-cols-6">
           {/* Brand */}
-          <div className="lg:col-span-2">
-            <Link href={ROUTES.home} className="mb-4 flex items-center gap-2">
+          <div className="col-span-2 lg:col-span-2">
+            <Link href={ROUTES.home} className="mb-4 flex cursor-pointer items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 via-cyan-500 to-blue-600 shadow-lg shadow-blue-500/50">
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
@@ -65,7 +65,7 @@ const Footer = () => {
                     key={index}
                     href={social.href}
                     aria-label={social.label}
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-all hover:bg-linear-to-br ${social.gradient} hover:text-white dark:bg-gray-900`}
+                    className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-all hover:bg-linear-to-br ${social.gradient} hover:text-white dark:bg-gray-900`}
                   >
                     <Icon className="h-5 w-5" />
                   </Link>
@@ -80,7 +80,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               {footerLinks.product.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+                  <Link href={link.href} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -94,7 +94,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               {footerLinks.company.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+                  <Link href={link.href} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -108,7 +108,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               {footerLinks.resources.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+                  <Link href={link.href} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -122,7 +122,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               {footerLinks.legal.map((link, index) => (
                 <li key={index}>
-                  <Link href={link.href} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+                  <Link href={link.href} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
                     {link.name}
                   </Link>
                 </li>
@@ -136,10 +136,10 @@ const Footer = () => {
             © {new Date().getFullYear()} SocialHub. All rights reserved.
           </p>
           <div className="mt-4 flex gap-6 md:mt-0">
-            <Link href={ROUTES.login} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+            <Link href={ROUTES.login} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign In
             </Link>
-            <Link href={ROUTES.signUp} className="transition-colors hover:text-blue-500 dark:hover:text-blue-400">
+            <Link href={ROUTES.signUp} className="cursor-pointer transition-colors hover:text-blue-500 dark:hover:text-blue-400">
               Sign Up
             </Link>
           </div>

@@ -1,11 +1,17 @@
 export type FeedFilter = 'for-you' | 'following' | 'my-feed';
 
+/** Relationship label shown on posts: Authored (you), Following (you follow), Network (2nd degree), Featured (others) */
+export type PostSource = 'authored' | 'following' | 'network' | 'featured';
+
 export type Post = {
   id: string;
   author: string;
   handle: string;
   avatarUrl: string;
+  /** Primary/first image URL (backward compat) */
   imageUrl: string;
+  /** All image URLs (multiple images use this for carousel) */
+  imageUrls: string[];
   liked: boolean;
   likes: number;
   comments: number;
@@ -15,6 +21,8 @@ export type Post = {
   timeAgo: string;
   caption: string;
   following: boolean;
+  /** Label to show: Authored | Following | Network | Featured */
+  postSource: PostSource;
   userId: string;
 };
 
@@ -77,6 +85,8 @@ export type ExploreItem = {
 export type CreatePostInput = {
   content: string;
   imageUrl?: string | null;
+  /** Multiple image URLs (stored as JSON array in DB when length > 1) */
+  imageUrls?: string[];
 };
 
 export type SupabaseUser = {
@@ -106,17 +116,20 @@ export type SupabasePostRow = {
   user_saved?: { id: string }[] | null;
 };
 
-// Comment types
+// Comment types – supports threaded replies
 export type Comment = {
   id: string;
   content: string;
   created_at: string;
   post_id: string;
   user_id: string;
+  parent_id?: string | null;
   users: {
     username: string;
     avatar_url: string | null;
   };
+  /** Nested replies (only on top-level comments from fetchComments) */
+  replies?: Comment[];
 };
 
 // User profile types

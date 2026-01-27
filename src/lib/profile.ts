@@ -73,10 +73,7 @@ export async function updateUserProfile(updates: {
 
   const { error } = await supabase
     .from("users")
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq("id", user.id);
 
   if (error) {

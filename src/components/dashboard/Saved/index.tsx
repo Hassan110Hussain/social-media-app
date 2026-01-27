@@ -1,67 +1,255 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import type { Post } from "@/types/api";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import type { Post, Comment } from "@/types/api";
+import Loader from "@/components/common/Loader";
 import ICONS from "@/components/assets/icons";
-import { fetchSavedPosts, toggleSavePost } from "@/lib/posts";
+import {
+  fetchSavedPosts,
+  toggleSavePost,
+  toggleLikePost,
+  toggleSharePost,
+  createComment,
+  fetchComments,
+  deleteComment,
+} from "@/lib/posts";
+import { supabase } from "@/lib/supabase";
+import PostCard from "@/components/dashboard/Home/PostCard";
 
 const Saved = () => {
+  const pathname = usePathname();
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
+  const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
+  const [replyingTo, setReplyingTo] = useState<{ postId: string; commentId: string } | null>(null);
+  const [isDeletingCommentId, setIsDeletingCommentId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadSavedPosts = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const posts = await fetchSavedPosts();
-        setSavedPosts(posts);
-      } catch (err) {
-        console.error("Failed to load saved posts:", err);
-        setError("Unable to load saved posts right now. Please try again.");
-        setSavedPosts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void loadSavedPosts();
+  const loadSavedPosts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const posts = await fetchSavedPosts();
+      setSavedPosts(posts);
+    } catch (err) {
+      console.error("Failed to load saved posts:", err);
+      setError("Unable to load saved posts right now. Please try again.");
+      setSavedPosts([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const handleUnsave = async (postId: string) => {
-    // Optimistic update
-    const previousPosts = [...savedPosts];
-    setSavedPosts((current) => current.filter((post) => post.id !== postId));
+  // Load saved posts on mount and when page is focused (so data stays in sync with Home/Explore)
+  useEffect(() => {
+    void loadSavedPosts();
+  }, [loadSavedPosts]);
 
+  useEffect(() => {
+    if (typeof document === "undefined" || !pathname?.includes("saved")) return;
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadSavedPosts();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [pathname, loadSavedPosts]);
+
+  // Load current user for comments and delete
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+          const { data: profile } = await supabase
+            .from("users")
+            .select("avatar_url")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (profile?.avatar_url) setCurrentUserAvatar(profile.avatar_url);
+        }
+      } catch (e) {
+        console.error("Failed to load current user:", e);
+      }
+    };
+    void loadUser();
+  }, []);
+
+  const toggleLike = async (postId: string) => {
+    const previous = [...savedPosts];
+    setSavedPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+          : p
+      )
+    );
     try {
-      await toggleSavePost(postId);
-      // Refresh saved posts to get accurate list
-      const updatedPosts = await fetchSavedPosts();
-      setSavedPosts(updatedPosts);
-    } catch (err) {
-      console.error("Failed to unsave post:", err);
-      // Revert optimistic update on error
-      setSavedPosts(previousPosts);
+      await toggleLikePost(postId);
+      const updated = await fetchSavedPosts();
+      setSavedPosts(updated);
+    } catch (e) {
+      console.error("Failed to toggle like:", e);
+      setSavedPosts(previous);
     }
   };
 
+  const toggleShare = async (postId: string) => {
+    const previous = [...savedPosts];
+    setSavedPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, shared: !p.shared, shares: p.shared ? p.shares - 1 : p.shares + 1 }
+          : p
+      )
+    );
+    try {
+      await toggleSharePost(postId);
+      const updated = await fetchSavedPosts();
+      setSavedPosts(updated);
+    } catch (e) {
+      console.error("Failed to toggle share:", e);
+      setSavedPosts(previous);
+    }
+  };
+
+  const toggleSave = async (postId: string) => {
+    const previous = [...savedPosts];
+    setSavedPosts((prev) => prev.filter((p) => p.id !== postId));
+    try {
+      await toggleSavePost(postId);
+      const updated = await fetchSavedPosts();
+      setSavedPosts(updated);
+    } catch (e) {
+      console.error("Failed to unsave:", e);
+      setSavedPosts(previous);
+    }
+  };
+
+  const toggleComments = async (postId: string) => {
+    if (openCommentsPostId === postId) {
+      setOpenCommentsPostId(null);
+    } else {
+      setOpenCommentsPostId(postId);
+      if (!comments[postId]) {
+        try {
+          setIsLoadingComments((prev) => ({ ...prev, [postId]: true }));
+          const postComments = await fetchComments(postId);
+          setComments((prev) => ({ ...prev, [postId]: postComments }));
+        } catch (e) {
+          console.error("Failed to load comments:", e);
+        } finally {
+          setIsLoadingComments((prev) => ({ ...prev, [postId]: false }));
+        }
+      }
+    }
+  };
+
+  const handleSubmitComment = async (
+    postId: string,
+    content: string,
+    parentId?: string | null
+  ) => {
+    const trimmed = content.trim();
+    if (!trimmed || isSubmittingComment[postId]) return;
+    try {
+      setIsSubmittingComment((prev) => ({ ...prev, [postId]: true }));
+      await createComment(postId, trimmed, parentId ?? undefined);
+      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+      setReplyingTo((prev) => (prev?.postId === postId ? null : prev));
+      const updatedComments = await fetchComments(postId);
+      setComments((prev) => ({ ...prev, [postId]: updatedComments }));
+      setSavedPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, comments: p.comments + 1 } : p))
+      );
+    } catch (e) {
+      console.error("Failed to submit comment:", e);
+    } finally {
+      setIsSubmittingComment((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    try {
+      setIsDeletingCommentId(commentId);
+      await deleteComment(commentId);
+      const updatedComments = await fetchComments(postId);
+      setComments((prev) => ({ ...prev, [postId]: updatedComments }));
+      setSavedPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments: Math.max(0, p.comments - 1) } : p
+        )
+      );
+    } catch (e) {
+      console.error("Failed to delete comment:", e);
+    } finally {
+      setIsDeletingCommentId(null);
+    }
+  };
+
+  const handleStartReply = (postId: string, commentId: string) => {
+    setReplyingTo({ postId, commentId });
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleCommentInputChange = (postId: string, value: string) => {
+    setCommentInputs((prev) => ({ ...prev, [postId]: value }));
+  };
+
+  const noopDelete = () => {}; // Saved page does not support deleting the post itself from this view
+
+  const handleUnsave = async (postId: string) => {
+    try {
+      await toggleSavePost(postId);
+      const updated = await fetchSavedPosts();
+      setSavedPosts(updated);
+      setOpenMenuId(null);
+    } catch (e) {
+      console.error("Failed to unsave:", e);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        openMenuId &&
+        !target.closest("[data-menu-button]") &&
+        !target.closest("[data-menu-dropdown]")
+      ) {
+        setOpenMenuId(null);
+      }
+    };
+    if (openMenuId) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuId]);
+
   return (
-    <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50/80 to-white px-3 py-4 text-slate-900 transition-colors dark:from-slate-950/50 dark:to-slate-900/80 dark:text-white sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-5">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Library</p>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Saved Posts</h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">All posts you've saved for later.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">All posts you&apos;ve saved for later.</p>
           </div>
         </header>
 
         {isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-            Loading saved posts...
-          </div>
+          <Loader title="Loading saved posts..." subtitle="Almost there" />
         ) : error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-center text-xs text-rose-700 shadow-sm shadow-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200">
             {error}
@@ -74,83 +262,34 @@ const Saved = () => {
         ) : (
           <section className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
             {savedPosts.map((post) => (
-              <article
+              <PostCard
                 key={post.id}
-                className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:rounded-2xl"
-              >
-                {/* Post header */}
-                <header className="flex items-start justify-between gap-2 px-4 py-3 sm:px-5 min-h-[72px]">
-                  <div className="flex min-w-0 items-start gap-3 flex-1">
-                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800 sm:h-10 sm:w-10">
-                      <Image
-                        src={post.avatarUrl || ICONS.land}
-                        alt={post.author}
-                        fill
-                        className="object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = ICONS.land;
-                        }}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="space-y-1">
-                        <div>
-                          <span className="block truncate text-sm font-semibold leading-tight">
-                            {post.author}
-                          </span>
-                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                            {post.handle} · {post.timeAgo}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </header>
-
-                {/* Post media */}
-                {post.imageUrl && (
-                  <div className="relative w-full h-[500px] bg-slate-900/90">
-                    <Image
-                      src={post.imageUrl}
-                      alt={post.caption}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = ICONS.solid;
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Post content and actions */}
-                <div className="flex flex-1 flex-col justify-between space-y-2 px-4 py-3 sm:px-5 sm:py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                      <div className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold">
-                        <span className="text-slate-700 dark:text-slate-200">
-                          {post.likes.toLocaleString()} likes
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleUnsave(post.id)}
-                      className="rounded-full px-3 py-1 text-xs font-semibold bg-blue-500/10 text-blue-600 transition hover:bg-blue-500/20 dark:text-blue-400"
-                    >
-                      Unsave
-                    </button>
-                  </div>
-
-                  <div className="space-y-1 text-xs sm:text-sm">
-                    <p className="line-clamp-2 text-slate-700 dark:text-slate-200">
-                      <span className="font-semibold">{post.author}</span> {post.caption}
-                    </p>
-                  </div>
-                </div>
-              </article>
+                post={post}
+                currentUserId={currentUserId}
+                currentUserAvatar={currentUserAvatar}
+                openMenuId={openMenuId}
+                setOpenMenuId={setOpenMenuId}
+                openCommentsPostId={openCommentsPostId}
+                comments={comments[post.id] || []}
+                commentInput={commentInputs[post.id] || ""}
+                isLoadingComments={isLoadingComments[post.id] || false}
+                isSubmittingComment={isSubmittingComment[post.id] || false}
+                replyingToCommentId={replyingTo?.postId === post.id ? replyingTo.commentId : null}
+                isDeletingCommentId={isDeletingCommentId}
+                onStartReply={handleStartReply}
+                onCancelReply={handleCancelReply}
+                onDeleteComment={handleDeleteComment}
+                onDelete={noopDelete}
+                hideDeleteInMenu
+                onUnsave={handleUnsave}
+                onLike={toggleLike}
+                onShare={toggleShare}
+                onSave={toggleSave}
+                saveButtonDisabled
+                onToggleComments={toggleComments}
+                onCommentInputChange={handleCommentInputChange}
+                onSubmitComment={handleSubmitComment}
+              />
             ))}
           </section>
         )}

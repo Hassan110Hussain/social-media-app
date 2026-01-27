@@ -50,7 +50,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, postAuthor }: DeleteModalProp
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
@@ -74,7 +74,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, postAuthor }: DeleteModalProp
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="flex-1 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             Cancel
           </button>
@@ -82,7 +82,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, postAuthor }: DeleteModalProp
             type="button"
             onClick={handleDelete}
             disabled={isLoading}
-            className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+            className="flex-1 cursor-pointer rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
           >
             {isLoading ? 'Deleting...' : 'Delete'}
           </button>

@@ -1,9 +1,9 @@
-import React from 'react'
+import Loader from "@/components/common/Loader";
 
-function Loading() {
+export default function Loading() {
   return (
-    <div>Loading ... </div>
-  )
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <Loader title="Loading..." subtitle="Almost there" />
+    </div>
+  );
 }
-
-export default Loading

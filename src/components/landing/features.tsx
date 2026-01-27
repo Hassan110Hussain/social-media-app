@@ -106,22 +106,22 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="relative overflow-hidden bg-white py-24 text-slate-900 transition-colors dark:bg-black dark:text-white">
+    <section id="features" className="relative overflow-hidden bg-white py-12 text-slate-900 transition-colors dark:bg-black dark:text-white sm:py-16 lg:py-24">
       {/* Background blobs */}
-      <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10"></div>
-      <div className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-linear-to-br from-green-500/5 to-cyan-500/5 blur-3xl dark:from-green-500/10 dark:to-cyan-500/10"></div>
+      <div className="absolute top-0 right-0 h-[300px] w-[300px] rounded-full bg-linear-to-br from-blue-500/5 to-purple-500/5 blur-3xl dark:from-blue-500/10 dark:to-purple-500/10 sm:h-[400px] sm:w-[400px]"></div>
+      <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-linear-to-br from-green-500/5 to-cyan-500/5 blur-3xl dark:from-green-500/10 dark:to-cyan-500/10 sm:h-[400px] sm:w-[400px]"></div>
       
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 text-4xl font-bold">
+        <div className="mb-8 text-center sm:mb-12 lg:mb-16">
+          <h2 className="mb-3 text-2xl font-bold sm:mb-4 sm:text-3xl lg:text-4xl">
             Everything You Need to Stay Connected
           </h2>
-          <p className="mx-auto max-w-2xl text-xl text-slate-600 dark:text-gray-300">
+          <p className="mx-auto max-w-2xl text-base text-slate-600 dark:text-gray-300 sm:text-lg lg:text-xl">
             Powerful features designed to help you share, connect, and grow your social presence.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (

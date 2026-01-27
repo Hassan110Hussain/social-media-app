@@ -35,31 +35,31 @@ const steps = [
 
 const Working = () => {
   return (
-    <section id="how-it-works" className="relative overflow-hidden bg-white py-24 text-slate-900 transition-colors dark:bg-black dark:text-white">
+    <section id="how-it-works" className="relative overflow-hidden bg-white py-12 text-slate-900 transition-colors dark:bg-black dark:text-white sm:py-16 lg:py-24">
       {/* Animated background blobs */}
-      <div className="absolute top-0 left-0 h-[500px] w-[500px] rounded-full bg-linear-to-br from-purple-500/10 to-pink-500/10 blur-3xl animate-pulse dark:from-purple-500/20 dark:to-pink-500/20"></div>
+      <div className="absolute top-0 left-0 h-[300px] w-[300px] rounded-full bg-linear-to-br from-purple-500/10 to-pink-500/10 blur-3xl animate-pulse dark:from-purple-500/20 dark:to-pink-500/20 sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]"></div>
       <div
-        className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-linear-to-br from-blue-500/10 to-cyan-500/10 blur-3xl animate-pulse dark:from-blue-500/20 dark:to-cyan-500/20"
+        className="absolute bottom-0 right-0 h-[300px] w-[300px] rounded-full bg-linear-to-br from-blue-500/10 to-cyan-500/10 blur-3xl animate-pulse dark:from-blue-500/20 dark:to-cyan-500/20 sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]"
         style={{ animationDelay: '1s' }}
       ></div>
       
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 text-4xl font-bold">
+        <div className="mb-8 text-center sm:mb-12 lg:mb-16">
+          <h2 className="mb-3 text-2xl font-bold sm:mb-4 sm:text-3xl lg:text-4xl">
             How It Works
           </h2>
-          <p className="mx-auto max-w-2xl text-xl text-slate-600 dark:text-gray-300">
+          <p className="mx-auto max-w-2xl text-base text-slate-600 dark:text-gray-300 sm:text-lg lg:text-xl">
             Get started in four simple steps and begin your social journey today.
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, index) => {
             const Icon = step.icon;
             return (
               <div
                 key={index}
-                className="relative rounded-3xl border border-slate-200 bg-white/80 p-8 shadow transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl dark:border-gray-800 dark:bg-gray-900/50"
+                className="relative rounded-2xl border border-slate-200 bg-white/80 p-5 shadow transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl dark:border-gray-800 dark:bg-gray-900/50 sm:p-6 lg:rounded-3xl lg:p-8"
               >
                 <div className={`absolute -top-4 -left-4 flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br ${step.gradient} text-lg font-bold text-white shadow-lg`}>
                   {step.number}

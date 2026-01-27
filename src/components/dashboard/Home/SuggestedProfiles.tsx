@@ -11,15 +11,15 @@ interface SuggestedProfilesProps {
 
 const SuggestedProfiles = ({ profiles, onToggleFollow }: SuggestedProfilesProps) => {
   return (
-    <aside className="hidden shrink-0 space-y-3 lg:block lg:w-72">
-      <section className="rounded-xl border border-slate-200 bg-white/90 p-3 text-xs shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:rounded-2xl sm:p-4 sm:text-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+    <aside className="hidden shrink-0 space-y-4 lg:block lg:w-72">
+      <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-xs shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70 sm:p-5 sm:text-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Suggested for you
           </h2>
           <button
             type="button"
-            className="text-xs font-semibold text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             See all
           </button>
@@ -30,10 +30,10 @@ const SuggestedProfiles = ({ profiles, onToggleFollow }: SuggestedProfilesProps)
             profiles.map((profile) => (
               <div
                 key={profile.id}
-                className="flex items-center justify-between gap-3"
+                className="flex items-center justify-between gap-3 rounded-xl py-1"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-800">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-200 ring-2 ring-slate-100 dark:bg-slate-700 dark:ring-slate-800">
                     <Image
                       src={ICONS.view}
                       alt={profile.name}
@@ -42,7 +42,7 @@ const SuggestedProfiles = ({ profiles, onToggleFollow }: SuggestedProfilesProps)
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
+                    <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {profile.name}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
@@ -56,10 +56,10 @@ const SuggestedProfiles = ({ profiles, onToggleFollow }: SuggestedProfilesProps)
                 <button
                   type="button"
                   onClick={() => onToggleFollow(profile.id)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                  className={`shrink-0 cursor-pointer rounded-xl px-4 py-2 text-xs font-semibold transition ${
                     profile.isFollowing
-                      ? "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                      : "bg-blue-600 text-white shadow-sm hover:bg-blue-500"
+                      ? "border border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                      : "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:from-amber-600 hover:to-orange-600"
                   }`}
                 >
                   {profile.isFollowing ? "Following" : "Follow"}
@@ -67,18 +67,18 @@ const SuggestedProfiles = ({ profiles, onToggleFollow }: SuggestedProfilesProps)
               </div>
             ))
           ) : (
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="rounded-xl bg-slate-50/80 px-3 py-3 text-xs text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
               No suggested profiles at the moment.
             </p>
           )}
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white/90 p-3 text-xs text-slate-400 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-500 dark:shadow-none sm:rounded-2xl sm:p-4">
-        <p className="mb-2 font-semibold text-slate-500 dark:text-slate-400">
+      <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-400 sm:p-5">
+        <p className="mb-2 font-semibold text-slate-600 dark:text-slate-300">
           Your space for creators
         </p>
-        <p>
+        <p className="leading-relaxed">
           Follow pages and profiles you care about to build a personalized
           feed of design, dev, and product content.
         </p>

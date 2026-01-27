@@ -6,12 +6,15 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
 import type { Message } from '@/types/api';
+import ICONS from '@/components/assets/icons';
 
 const ResetPassword = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
@@ -154,33 +157,53 @@ const ResetPassword = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5 text-sm">
           <span className="font-medium text-slate-800 dark:text-white">New Password</span>
-          <input
-            required
-            minLength={6}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
-            placeholder="At least 6 characters"
-          />
+          <div className="relative">
+            <input
+              required
+              minLength={6}
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 pr-11 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
+              placeholder="At least 6 characters"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <img src={showPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
         </label>
 
         <label className="block space-y-1.5 text-sm">
           <span className="font-medium text-slate-800 dark:text-white">Confirm Password</span>
-          <input
-            required
-            minLength={6}
-            type="password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
-            placeholder="Confirm your password"
-          />
+          <div className="relative">
+            <input
+              required
+              minLength={6}
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 pr-11 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
+              placeholder="Confirm your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              <img src={showConfirmPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
         </label>
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-linear-to-r from-green-500 via-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-green-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full cursor-pointer rounded-xl bg-linear-to-r from-green-500 via-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-green-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Updating…' : 'Update password'}
@@ -190,7 +213,7 @@ const ResetPassword = () => {
       <div className="text-center text-sm">
         <Link
           href={ROUTES.login}
-          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+          className="cursor-pointer text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login
         </Link>

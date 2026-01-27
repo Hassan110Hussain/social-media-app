@@ -22,7 +22,7 @@ const Settings = () => {
           <button
             type="button"
             onClick={() => setActiveTab("general")}
-            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            className={`flex-1 cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
               activeTab === "general"
                 ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-950"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -33,7 +33,7 @@ const Settings = () => {
           <button
             type="button"
             onClick={() => setActiveTab("security")}
-            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            className={`flex-1 cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
               activeTab === "security"
                 ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-950"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"

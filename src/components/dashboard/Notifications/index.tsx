@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Notification, NotificationType } from "@/types/api";
+import Loader from "@/components/common/Loader";
 import ICONS from "@/components/assets/icons";
 import { fetchNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
@@ -126,9 +127,7 @@ const Notifications = () => {
         </header>
 
         {isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-            Loading notifications...
-          </div>
+          <Loader title="Loading notifications..." subtitle="Almost there" />
         ) : error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-center text-xs text-rose-700 shadow-sm shadow-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200">
             {error}
@@ -147,7 +146,7 @@ const Notifications = () => {
                 key={notification.id}
                 href={notification.postId ? `/home#post-${notification.postId}` : `/profile/${notification.userHandle}`}
                 onClick={() => markAsRead(notification.id)}
-                className={`group flex items-start gap-3 rounded-xl border px-4 py-3 transition hover:shadow-sm sm:px-5 sm:py-4 ${
+                className={`group flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition hover:shadow-sm sm:px-5 sm:py-4 ${
                   notification.is_read
                     ? "border-slate-200 bg-white/60 dark:border-slate-800 dark:bg-slate-900/40"
                     : "border-blue-200 bg-blue-50/50 shadow-sm shadow-blue-100/50 dark:border-blue-800/60 dark:bg-blue-950/30 dark:shadow-blue-900/20"

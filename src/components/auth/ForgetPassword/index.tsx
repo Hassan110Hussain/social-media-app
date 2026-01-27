@@ -72,7 +72,7 @@ const ForgetPassword = () => {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-linear-to-r from-orange-500 via-yellow-500 to-orange-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+            className="w-full cursor-pointer rounded-xl bg-linear-to-r from-orange-500 via-yellow-500 to-orange-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/50 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             disabled={isLoading}
           >
             {isLoading ? 'Sending…' : 'Send reset link'}
@@ -92,7 +92,7 @@ const ForgetPassword = () => {
       <div className="text-center text-sm">
         <Link
           href={ROUTES.login}
-          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+          className="cursor-pointer text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Back to login
         </Link>

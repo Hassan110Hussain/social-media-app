@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/utils/constants';
 import type { Message } from '@/types/api';
+import ICONS from '@/components/assets/icons';
 
 const oauthProviders = [
   { label: 'Continue with Google', id: 'google' as const },
@@ -27,6 +28,7 @@ const Login = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
 
@@ -127,21 +129,31 @@ const Login = () => {
 
         <label className="block space-y-1.5 text-sm">
           <span className="font-medium text-slate-800 dark:text-white">Password</span>
-          <input
-            required
-            type="password"
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              required
+              type={showPassword ? 'text' : 'password'}
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 pr-11 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <img src={showPassword ? ICONS.hide : ICONS.show} alt="" className="h-5 w-5" />
+            </button>
+          </div>
         </label>
 
         <div className="flex justify-end">
           <Link
             href={ROUTES.forgetPassword}
-            className="text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+            className="cursor-pointer text-sm text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
           >
             Forgot password?
           </Link>
@@ -149,7 +161,7 @@ const Login = () => {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="w-full cursor-pointer rounded-xl bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
           disabled={isLoading}
         >
           {isLoading ? 'Please wait…' : 'Login'}
@@ -161,7 +173,7 @@ const Login = () => {
           <button
             key={provider.id}
             type="button"
-            className={`w-full rounded-xl px-4 py-3 text-sm font-medium transition-all hover:scale-[1.01] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 ${providerClasses[provider.id]}`}
+            className={`w-full cursor-pointer rounded-xl px-4 py-3 text-sm font-medium transition-all hover:scale-[1.01] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 ${providerClasses[provider.id]}`}
             onClick={() => handleOAuth(provider.id)}
             disabled={isLoading}
           >
@@ -174,7 +186,7 @@ const Login = () => {
         <span className="text-slate-600 dark:text-gray-400">Don't have an account? </span>
         <Link
           href={ROUTES.signUp}
-          className="text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+          className="cursor-pointer text-blue-500 transition-colors hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Sign up
         </Link>

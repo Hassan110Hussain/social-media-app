@@ -3,12 +3,71 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Post } from "@/types/api";
-import { fetchExplorePosts, toggleLikePost, toggleSavePost, createComment, fetchComments } from "@/lib/posts";
+import { fetchExplorePosts, toggleLikePost, toggleSavePost, toggleSharePost, createComment, fetchComments } from "@/lib/posts";
 import type { Comment } from "@/types/api";
 import ScrollPaginationSentinel from "@/components/common/ScrollPagination";
+import Loader from "@/components/common/Loader";
+import PostDetailOverlay from "@/components/common/PostDetailOverlay";
 import ICONS from "@/components/assets/icons";
+import { supabase } from "@/lib/supabase";
 
 const POSTS_PER_PAGE = 12;
+
+// Stable per-visit shuffle seed so repeated fetches (e.g. React Strict Mode double-mount) show the same order and avoid flicker
+let exploreShuffleSeed = Date.now();
+
+function ExplorePostMedia({ post, onClick }: { post: Post; onClick?: () => void }) {
+  const urls = post.imageUrls?.length ? post.imageUrls : post.imageUrl ? [post.imageUrl] : [];
+  const [index, setIndex] = useState(0);
+  const current = urls[index];
+  if (urls.length === 0) return null;
+  return (
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={(e) => { if (onClick) { e.stopPropagation(); onClick(); } }}
+      onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); } }}
+      className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-950/60 dark:border-slate-700"
+    >
+      <Image
+        src={current}
+        alt={post.caption}
+        fill
+        className="object-cover transition group-hover:scale-[1.02]"
+        onError={(e) => { (e.target as HTMLImageElement).src = ICONS.solid; }}
+      />
+      {urls.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIndex((i) => (i === 0 ? urls.length - 1 : i - 1)); }}
+            className="absolute left-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+            aria-label="Previous image"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIndex((i) => (i === urls.length - 1 ? 0 : i + 1)); }}
+            className="absolute right-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+            aria-label="Next image"
+          >
+            ›
+          </button>
+          <div className="absolute bottom-1.5 left-1/2 z-10 flex -translate-x-1/2 gap-1">
+            {urls.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${i === index ? "bg-white" : "bg-white/50"}`}
+                aria-hidden
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const Explore = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -22,38 +81,127 @@ const Explore = () => {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
+  const [overlayPost, setOverlayPost] = useState<Post | null>(null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Load initial posts
+  const loadPosts = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setHasMore(true);
+      const explorePosts = await fetchExplorePosts(POSTS_PER_PAGE, 0, exploreShuffleSeed);
+      setPosts(explorePosts);
+      setHasMore(explorePosts.length === POSTS_PER_PAGE);
+    } catch (err) {
+      console.error("Failed to load explore posts:", err);
+      setError("Unable to load posts right now. Please try again.");
+      setPosts([]);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load initial posts on mount
   useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        setHasMore(true);
-        const explorePosts = await fetchExplorePosts(POSTS_PER_PAGE, 0);
-        setPosts(explorePosts);
-        setHasMore(explorePosts.length === POSTS_PER_PAGE);
-      } catch (err) {
-        console.error("Failed to load explore posts:", err);
-        setError("Unable to load posts right now. Please try again.");
-        setPosts([]);
-        setHasMore(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     void loadPosts();
   }, []);
 
-  // Load more posts when scrolling
+  // Load current user for overlay comment form
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+          const { data: row } = await supabase.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
+          if (row?.avatar_url) setCurrentUserAvatar(row.avatar_url);
+        }
+      } catch (e) {
+        console.error("Failed to load current user:", e);
+      }
+    };
+    void loadUser();
+  }, []);
+
+  const loadOverlayComments = async (postId: string) => {
+    if (comments[postId]) return;
+    try {
+      setIsLoadingComments((prev) => ({ ...prev, [postId]: true }));
+      const list = await fetchComments(postId);
+      setComments((prev) => ({ ...prev, [postId]: list }));
+    } catch (e) {
+      console.error("Failed to load overlay comments:", e);
+    } finally {
+      setIsLoadingComments((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleOverlayCommentSubmit = async (content: string) => {
+    if (!overlayPost || !content.trim() || isSubmittingComment[overlayPost.id]) return;
+    try {
+      setIsSubmittingComment((prev) => ({ ...prev, [overlayPost.id]: true }));
+      await createComment(overlayPost.id, content.trim());
+      setCommentInputs((prev) => ({ ...prev, [overlayPost.id]: "" }));
+      const updated = await fetchComments(overlayPost.id);
+      setComments((prev) => ({ ...prev, [overlayPost.id]: updated }));
+      setPosts((prev) => prev.map((p) => (p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p)));
+      setOverlayPost((p) => (p && p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p));
+    } catch (e) {
+      console.error("Failed to submit comment:", e);
+    } finally {
+      setIsSubmittingComment((prev) => ({ ...prev, [overlayPost.id]: false }));
+    }
+  };
+
+  const handleOverlayLike = async (postId: string) => {
+    const prev = [...posts];
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : null));
+    try {
+      await toggleLikePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle like:", e);
+      setPosts(prev);
+      setOverlayPost(prev.find((p) => p.id === postId) ?? overlayPost);
+    }
+  };
+
+  const handleOverlaySave = async (postId: string) => {
+    const prev = [...posts];
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, saved: !x.saved } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, saved: !p.saved } : null));
+    try {
+      await toggleSavePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle save:", e);
+      setPosts(prev);
+      setOverlayPost(prev.find((p) => p.id === postId) ?? overlayPost);
+    }
+  };
+
+  const handleOverlayShare = async (postId: string) => {
+    const prev = [...posts];
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, shared: !x.shared, shares: x.shared ? x.shares - 1 : x.shares + 1 } : x)));
+    if (overlayPost?.id === postId) setOverlayPost((p) => (p ? { ...p, shared: !p.shared, shares: p.shared ? p.shares - 1 : p.shares + 1 } : null));
+    try {
+      await toggleSharePost(postId);
+    } catch (e) {
+      console.error("Failed to toggle share:", e);
+      setPosts(prev);
+      setOverlayPost(prev.find((p) => p.id === postId) ?? overlayPost);
+    }
+  };
+
+  // Load more posts when scrolling (same seed as initial load so order is consistent)
   const loadMorePosts = async () => {
     if (isLoadingMore || !hasMore) return;
 
     try {
       setIsLoadingMore(true);
       const currentOffset = posts.length;
-      const newPosts = await fetchExplorePosts(POSTS_PER_PAGE, currentOffset);
+      const newPosts = await fetchExplorePosts(POSTS_PER_PAGE, currentOffset, exploreShuffleSeed);
 
       if (newPosts.length === 0) {
         setHasMore(false);
@@ -181,14 +329,17 @@ const Explore = () => {
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Explore curated inspiration</h1>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Search UI patterns, product ideas, and motion concepts tailored for modern teams.</p>
             </div>
-            <div className="flex gap-2">
-              <button type="button" className="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 sm:inline-flex">
-                ⟳ Refresh picks
-              </button>
-              <button type="button" className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] hover:bg-blue-500 hover:shadow-md">
-                + Submit your shot
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                exploreShuffleSeed = Date.now();
+                void loadPosts();
+              }}
+              disabled={isLoading}
+              className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              ⟳ Refresh picks
+            </button>
           </header>
 
           <section className="space-y-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-none sm:p-5">
@@ -197,7 +348,7 @@ const Explore = () => {
                 <span className="text-lg">🔍</span>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search posts, users, or content..." className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" />
                 {search && (
-                  <button type="button" onClick={() => setSearch("")} className="text-xs font-semibold text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+                  <button type="button" onClick={() => setSearch("")} className="cursor-pointer text-xs font-semibold text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                     Clear
                   </button>
                 )}
@@ -207,8 +358,8 @@ const Explore = () => {
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {isLoading ? (
-              <div className="col-span-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 shadow-sm shadow-slate-200 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-                Loading posts...
+              <div className="col-span-full">
+                <Loader title="Loading posts..." subtitle="Almost there" />
               </div>
             ) : error ? (
               <div className="col-span-full rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-center text-xs text-rose-700 shadow-sm shadow-rose-100 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200">
@@ -221,73 +372,95 @@ const Explore = () => {
               </div>
             ) : (
               <>
-                {filtered.map((post) => (
-                  <article key={post.id} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-200 backdrop-blur transition hover:-translate-y-[2px] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
-                  <div className="relative flex flex-col gap-3 p-4 sm:p-5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-800">
-                          <Image
-                            src={post.avatarUrl || ICONS.land}
-                            alt={post.author}
-                            fill
-                            className="object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = ICONS.land;
-                            }}
-                          />
+                {filtered.map((post) => {
+                  const hasMedia = post.imageUrl || (post.imageUrls?.length ?? 0) > 0;
+                  return (
+                  <article key={post.id} className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition hover:shadow-lg dark:border-slate-700/80 dark:bg-slate-900/90 dark:hover:shadow-slate-900/50">
+                    <div className="flex flex-col">
+                      {/* Header: author + save */}
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2.5 dark:border-slate-800/80 sm:px-4">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                            <Image
+                              src={post.avatarUrl || ICONS.land}
+                              alt={post.author}
+                              fill
+                              className="object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).src = ICONS.land; }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{post.author}</p>
+                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">{post.handle} · {post.timeAgo}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{post.author}</p>
-                          <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">{post.handle}</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleSave(post.id)}
-                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                          post.saved ? "bg-emerald-500 text-white shadow-sm shadow-emerald-400/40" : "bg-white/80 text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        {post.saved ? "Saved" : "Save"}
-                      </button>
-                    </div>
-
-                    {post.imageUrl && (
-                      <div className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-slate-950/60 shadow-inner shadow-slate-200/30 dark:border-slate-800">
-                        <Image src={post.imageUrl} alt={post.caption} width={640} height={640} className="h-52 w-full object-cover sm:h-56" onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = ICONS.solid;
-                        }} />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-3">{post.caption}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                         <button
                           type="button"
-                          onClick={() => toggleLike(post.id)}
-                          className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                            post.liked ? "bg-rose-500 text-white shadow-sm shadow-rose-400/40" : "bg-white/80 text-slate-700 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-800"
+                          onClick={(e) => { e.stopPropagation(); toggleSave(post.id); }}
+                          className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                            post.saved ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                          }`}
+                        >
+                          {post.saved ? "Saved" : "Save"}
+                        </button>
+                      </div>
+
+                      {/* Media or caption – clickable to open overlay (div to avoid nesting buttons; ExplorePostMedia has prev/next buttons) */}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="w-full cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-slate-500"
+                        onClick={() => setOverlayPost(post)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setOverlayPost(post);
+                          }
+                        }}
+                      >
+                        {hasMedia ? (
+                          <ExplorePostMedia post={post} />
+                        ) : (
+                          <div className="border-b border-slate-100 px-3 py-3 dark:border-slate-800/80 sm:px-4">
+                            <p className="line-clamp-4 text-sm text-slate-700 dark:text-slate-300">{post.caption}</p>
+                          </div>
+                        )}
+                        {hasMedia && (
+                          <div className="border-b border-slate-100 px-3 py-2.5 dark:border-slate-800/80 sm:px-4">
+                            <p className="line-clamp-2 text-sm text-slate-700 dark:text-slate-300">{post.caption}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions – do not open overlay */}
+                      <div className="flex items-center gap-2 px-3 py-2 sm:px-4">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleLike(post.id); }}
+                          className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
+                            post.liked ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400" : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                           }`}
                         >
                           {post.liked ? "♥" : "♡"} {post.likes.toLocaleString()}
                         </button>
                         <button
                           type="button"
-                          onClick={() => toggleComments(post.id)}
-                          className="hover:text-slate-700 dark:hover:text-slate-200"
+                          onClick={(e) => { e.stopPropagation(); toggleComments(post.id); }}
+                          className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                         >
-                          💬 {post.comments} comments
+                          💬 {post.comments}
                         </button>
-                        <span>📤 {post.shares} shares</span>
-                        <span>{post.timeAgo}</span>
+                        <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">📤 {post.shares}</span>
+                        <button
+                          type="button"
+                          className="ml-auto cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                          onClick={(e) => { e.stopPropagation(); setOverlayPost(post); }}
+                        >
+                          View post
+                        </button>
                       </div>
-                    </div>
 
-                    {openCommentsPostId === post.id && (
+                      {openCommentsPostId === post.id && (
                       <div className="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
                         <div className="flex items-start gap-2">
                           <textarea
@@ -312,14 +485,14 @@ const Explore = () => {
                             type="button"
                             onClick={() => handleSubmitComment(post.id)}
                             disabled={!commentInputs[post.id]?.trim() || isSubmittingComment[post.id]}
-                            className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+                            className="cursor-pointer rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
                           >
                             {isSubmittingComment[post.id] ? "..." : "Post"}
                           </button>
                         </div>
 
                         {isLoadingComments[post.id] ? (
-                          <div className="py-4 text-center text-xs text-slate-500 dark:text-slate-400">Loading comments...</div>
+                          <Loader compact title="Loading comments…" className="py-4" />
                         ) : comments[post.id] && comments[post.id].length > 0 ? (
                           <div className="space-y-3 max-h-[200px] overflow-y-auto">
                             {comments[post.id].map((comment) => (
@@ -352,7 +525,8 @@ const Explore = () => {
                     )}
                   </div>
                 </article>
-                ))}
+                  );
+                })}
                 {!search.trim() && (
                   <div className="col-span-full">
                     <ScrollPaginationSentinel
@@ -410,6 +584,23 @@ const Explore = () => {
           </div>
         </aside>
       </div>
+
+      <PostDetailOverlay
+        post={overlayPost}
+        onClose={() => setOverlayPost(null)}
+        comments={overlayPost ? (comments[overlayPost.id] ?? []) : []}
+        isLoadingComments={overlayPost ? (isLoadingComments[overlayPost.id] ?? false) : false}
+        onOpen={loadOverlayComments}
+        currentUserAvatar={currentUserAvatar}
+        currentUserId={currentUserId}
+        commentInput={overlayPost ? (commentInputs[overlayPost.id] ?? "") : ""}
+        onCommentInputChange={(v) => overlayPost && setCommentInputs((prev) => ({ ...prev, [overlayPost.id]: v }))}
+        onSubmitComment={handleOverlayCommentSubmit}
+        isSubmittingComment={overlayPost ? (isSubmittingComment[overlayPost.id] ?? false) : false}
+        onLike={handleOverlayLike}
+        onShare={handleOverlayShare}
+        onSave={handleOverlaySave}
+      />
     </div>
   );
 };

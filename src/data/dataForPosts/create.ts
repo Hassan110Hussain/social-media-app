@@ -31,7 +31,7 @@ export async function uploadPostImage(file: File | Blob): Promise<string> {
   return data.publicUrl;
 }
 
-export async function createPost({ content, imageUrl }: CreatePostInput) {
+export async function createPost({ content, imageUrl, imageUrls }: CreatePostInput) {
   const user = await getCurrentUser();
   await ensureUserRowExists();
 
@@ -40,7 +40,9 @@ export async function createPost({ content, imageUrl }: CreatePostInput) {
     user_id: user.id,
   };
 
-  if (typeof imageUrl !== "undefined") {
+  if (imageUrls?.length) {
+    insertPayload.image_url = imageUrls.length === 1 ? imageUrls[0] : JSON.stringify(imageUrls);
+  } else if (typeof imageUrl !== "undefined") {
     insertPayload.image_url = imageUrl;
   }
 

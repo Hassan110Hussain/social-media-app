@@ -1,4 +1,4 @@
-import type { Post, SupabaseUser, SupabasePostRow } from "@/types/api";
+import type { Post, PostSource, SupabaseUser, SupabasePostRow } from "@/types/api";
 
 export function formatTimeAgo(isoDate: string): string {
   const created = new Date(isoDate);
@@ -60,7 +60,26 @@ export function hasPostAuthorData(post: { users?: unknown; user_id?: string }): 
   return typeof u === "object" && "id" in u;
 }
 
-export function mapSupabasePostToUi(post: SupabasePostRow, isFollowing: boolean = false): Post {
+/**
+ * Compute post source label from viewer context.
+ * Authored = your post; Following = you follow author; Network = 2nd degree; Featured = everyone else.
+ */
+export function getPostSource(
+  currentUserId: string,
+  postUserId: string,
+  directFollowingIds: Set<string>,
+  secondLevelFollowingIds: Set<string>
+): PostSource {
+  if (postUserId === currentUserId) return "authored";
+  if (directFollowingIds.has(postUserId)) return "following";
+  if (secondLevelFollowingIds.has(postUserId)) return "network";
+  return "featured";
+}
+
+export function mapSupabasePostToUi(
+  post: SupabasePostRow,
+  postSource: PostSource = "featured"
+): Post {
   const user = resolvePostAuthor(post);
 
   if (!user) {
@@ -92,12 +111,30 @@ export function mapSupabasePostToUi(post: SupabasePostRow, isFollowing: boolean 
   const isShared = !!(post.user_shared && post.user_shared.length > 0);
   const isSaved = !!(post.user_saved && post.user_saved.length > 0);
 
+  /** Parse image_url: can be single URL string or JSON array of URLs */
+  let imageUrls: string[] = [];
+  const raw = post.image_url;
+  if (typeof raw === "string" && raw.trim()) {
+    if (raw.trim().startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        imageUrls = Array.isArray(parsed) ? parsed.filter((u): u is string => typeof u === "string") : [raw];
+      } catch {
+        imageUrls = [raw];
+      }
+    } else {
+      imageUrls = [raw];
+    }
+  }
+  const imageUrl = imageUrls[0] ?? "";
+
   return {
     id: post.id,
     author: displayName,
     handle,
     avatarUrl,
-    imageUrl: post.image_url ?? "",
+    imageUrl,
+    imageUrls,
     liked: isLiked,
     likes: likesCount,
     comments: commentsCount,
@@ -106,7 +143,8 @@ export function mapSupabasePostToUi(post: SupabasePostRow, isFollowing: boolean 
     saved: isSaved,
     timeAgo: formatTimeAgo(post.created_at),
     caption: post.content,
-    following: isFollowing,
+    following: postSource === "following",
+    postSource,
     userId: post.user_id || "",
   };
 }

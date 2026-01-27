@@ -19,17 +19,30 @@ const General = ({ onMessage }: GeneralProps) => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialFirstName, setInitialFirstName] = useState("");
+  const [initialLastName, setInitialLastName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasChanges =
+    firstName.trim() !== initialFirstName.trim() ||
+    lastName.trim() !== initialLastName.trim() ||
+    avatarFile !== null;
 
   useEffect(() => {
     const loadProfile = async () => {
+      setIsLoading(true);
       try {
         const [profile, { data: { user } }] = await Promise.all([
           fetchCurrentUserProfile(),
           supabase.auth.getUser(),
         ]);
-        setFirstName(profile.first_name || "");
-        setLastName(profile.last_name || "");
+        const fn = profile.first_name || "";
+        const ln = profile.last_name || "";
+        setFirstName(fn);
+        setLastName(ln);
+        setInitialFirstName(fn);
+        setInitialLastName(ln);
         setEmail(user?.email || "");
         setAvatarUrl(profile.avatar_url);
       } catch (error) {
@@ -38,6 +51,8 @@ const General = ({ onMessage }: GeneralProps) => {
           type: "error",
           text: "Failed to load profile. Please refresh the page.",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -119,6 +134,8 @@ const General = ({ onMessage }: GeneralProps) => {
       setAvatarUrl(newAvatarUrl);
       setAvatarFile(null);
       setAvatarPreview(null);
+      setInitialFirstName(firstName.trim());
+      setInitialLastName(lastName.trim());
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -140,6 +157,38 @@ const General = ({ onMessage }: GeneralProps) => {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:p-6">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">General Information</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 shrink-0 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-9 w-28 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-10 w-full animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-10 w-full animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-14 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-10 w-full animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+          </div>
+          <div className="pt-2">
+            <div className="h-10 w-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:p-6">
@@ -174,7 +223,7 @@ const General = ({ onMessage }: GeneralProps) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Change Photo
             </button>
@@ -232,8 +281,8 @@ const General = ({ onMessage }: GeneralProps) => {
           <button
             type="button"
             onClick={handleSaveGeneral}
-            disabled={isSaving}
-            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+            disabled={isSaving || !hasChanges}
+            className="cursor-pointer rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
