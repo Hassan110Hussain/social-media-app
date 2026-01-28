@@ -526,8 +526,15 @@ const PostCard = ({
 
           <button
             type="button"
-            onClick={() => onShare(post.id)}
-            className="hidden cursor-pointer items-center justify-center gap-2 bg-white py-3 transition hover:bg-slate-50 dark:bg-slate-900/90 dark:hover:bg-slate-800/60 sm:flex sm:gap-2.5"
+            onClick={() => currentUserId !== post.userId && onShare(post.id)}
+            disabled={currentUserId === post.userId}
+            aria-disabled={currentUserId === post.userId}
+            title={currentUserId === post.userId ? "You can't share your own post" : undefined}
+            className={`hidden items-center justify-center gap-2 py-3 sm:flex sm:gap-2.5 ${
+              currentUserId === post.userId
+                ? "cursor-not-allowed bg-slate-50 opacity-70 dark:bg-slate-800/50"
+                : "cursor-pointer bg-white transition hover:bg-slate-50 dark:bg-slate-900/90 dark:hover:bg-slate-800/60"
+            }`}
           >
             <span
               className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-base transition ${

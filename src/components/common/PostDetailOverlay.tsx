@@ -154,8 +154,8 @@ export default function PostDetailOverlay({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex max-h-[90vh] flex-col overflow-y-auto">
-          {/* Header: close + author */}
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:px-5">
+          {/* Header: close + author — z-20 and solid bg so it stays above carousel arrows when scrolling */}
+          <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:px-5">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                 <Image
@@ -205,8 +205,8 @@ export default function PostDetailOverlay({
           </div>
 
           {/* Stats: likes, comments, shares — grid layout so row doesn’t break on small screens */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-b border-slate-200 px-4 py-3 text-sm dark:border-slate-700 sm:grid-cols-4 sm:px-5">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex flex-wrap items-center gap-6 border-b border-slate-200 px-4 py-3 text-sm dark:border-slate-700 sm:px-5">
+            <div className="flex min-w-0 items-center gap-x-2">
               <span className="shrink-0 text-slate-600 dark:text-slate-400">♥</span>
               <span className="font-medium text-slate-700 dark:text-slate-300">{post.likes} likes</span>
               {!isOwnPost && typeof onLike === "function" && (
@@ -223,13 +223,14 @@ export default function PostDetailOverlay({
               <span className="shrink-0 text-slate-600 dark:text-slate-400">💬</span>
               <span className="font-medium text-slate-700 dark:text-slate-300">{post.comments} comments</span>
             </div>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="flex min-w-0 items-center gap-x-2">
               <span className="shrink-0 text-slate-600 dark:text-slate-400">📤</span>
               <span className="font-medium text-slate-700 dark:text-slate-300">{post.shares} shares</span>
               {!isOwnPost && typeof onShare === "function" && (
                 <button
                   type="button"
                   onClick={() => onShare(post.id)}
+                  title="Share"
                   className="shrink-0 cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50"
                 >
                   {post.shared ? "Unshare" : "Share"}
@@ -237,15 +238,13 @@ export default function PostDetailOverlay({
               )}
             </div>
             {!isOwnPost && typeof onSave === "function" && (
-              <div className="flex min-w-0 items-center sm:col-start-4">
-                <button
-                  type="button"
-                  onClick={() => onSave(post.id)}
-                  className="cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-                >
-                  {post.saved ? "Unsave" : "Save"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onSave(post.id)}
+                className="shrink-0 cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+              >
+                {post.saved ? "Unsave" : "Save"}
+              </button>
             )}
           </div>
 
@@ -259,22 +258,47 @@ export default function PostDetailOverlay({
             ) : (
               <ul className="space-y-3 max-h-[240px] overflow-y-auto">
                 {comments.map((c) => (
-                  <li key={c.id} className="flex items-start gap-3">
-                    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                      <Image
-                        src={c.users.avatar_url || ICONS.land}
-                        alt={c.users.username}
-                        fill
-                        className="object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = ICONS.land;
-                        }}
-                      />
+                  <li key={c.id} className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <Image
+                          src={c.users.avatar_url || ICONS.land}
+                          alt={c.users.username}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = ICONS.land;
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">@{c.users.username}</p>
+                        <p className="text-sm text-slate-700 dark:text-slate-300">{c.content}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">@{c.users.username}</p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300">{c.content}</p>
-                    </div>
+                    {c.replies && c.replies.length > 0 && (
+                      <ul className="ml-11 space-y-2 border-l-2 border-slate-200 pl-3 dark:border-slate-700">
+                        {c.replies.map((reply) => (
+                          <li key={reply.id} className="flex items-start gap-2">
+                            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                              <Image
+                                src={reply.users.avatar_url || ICONS.land}
+                                alt={reply.users.username}
+                                fill
+                                className="object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = ICONS.land;
+                                }}
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">@{reply.users.username}</p>
+                              <p className="text-sm text-slate-700 dark:text-slate-300">{reply.content}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>

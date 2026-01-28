@@ -417,19 +417,21 @@ const Explore = () => {
                         )}
                       </div>
 
-                      {/* Actions – do not open overlay */}
-                      <div className="flex items-center gap-2 px-3 py-2 sm:px-4">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleLike(post.id); }}
-                          className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
-                            post.liked ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400" : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          {post.liked ? "♥" : "♡"} {post.likes.toLocaleString()}
-                        </button>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">💬 {post.comments}</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">📤 {post.shares}</span>
+                      {/* Actions – do not open overlay; even gap between like, comment, share */}
+                      <div className="flex items-center px-3 py-2 sm:px-4">
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleLike(post.id); }}
+                            className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
+                              post.liked ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400" : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            {post.liked ? "♥" : "♡"} {post.likes.toLocaleString()}
+                          </button>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">💬 {post.comments}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">📤 {post.shares}</span>
+                        </div>
                         <button
                           type="button"
                           className="ml-auto cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
