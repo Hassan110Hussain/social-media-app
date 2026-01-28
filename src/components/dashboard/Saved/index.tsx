@@ -16,11 +16,16 @@ import {
 } from "@/lib/posts";
 import { supabase } from "@/lib/supabase";
 import PostCard from "@/components/dashboard/Home/PostCard";
+import ScrollPaginationSentinel from "@/components/common/ScrollPagination";
+
+const POSTS_PER_PAGE = 12;
 
 const Saved = () => {
   const pathname = usePathname();
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -37,16 +42,42 @@ const Saved = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const posts = await fetchSavedPosts();
+      setHasMore(true);
+      const posts = await fetchSavedPosts(POSTS_PER_PAGE, 0);
       setSavedPosts(posts);
+      setHasMore(posts.length === POSTS_PER_PAGE);
     } catch (err) {
       console.error("Failed to load saved posts:", err);
       setError("Unable to load saved posts right now. Please try again.");
       setSavedPosts([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Load more posts when scrolling
+  const loadMorePosts = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      const currentOffset = savedPosts.length;
+      const newPosts = await fetchSavedPosts(POSTS_PER_PAGE, currentOffset);
+
+      if (newPosts.length === 0) {
+        setHasMore(false);
+      } else {
+        setSavedPosts((prev) => [...prev, ...newPosts]);
+        setHasMore(newPosts.length === POSTS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error("Failed to load more posts:", error);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Load saved posts on mount and when page is focused (so data stays in sync with Home/Explore)
   useEffect(() => {
@@ -96,8 +127,7 @@ const Saved = () => {
     );
     try {
       await toggleLikePost(postId);
-      const updated = await fetchSavedPosts();
-      setSavedPosts(updated);
+      // Optimistic update is already applied, no need to refetch all
     } catch (e) {
       console.error("Failed to toggle like:", e);
       setSavedPosts(previous);
@@ -115,8 +145,7 @@ const Saved = () => {
     );
     try {
       await toggleSharePost(postId);
-      const updated = await fetchSavedPosts();
-      setSavedPosts(updated);
+      // Optimistic update is already applied, no need to refetch all
     } catch (e) {
       console.error("Failed to toggle share:", e);
       setSavedPosts(previous);
@@ -128,8 +157,7 @@ const Saved = () => {
     setSavedPosts((prev) => prev.filter((p) => p.id !== postId));
     try {
       await toggleSavePost(postId);
-      const updated = await fetchSavedPosts();
-      setSavedPosts(updated);
+      // Post is removed from saved list, no need to refetch
     } catch (e) {
       console.error("Failed to unsave:", e);
       setSavedPosts(previous);
@@ -214,8 +242,7 @@ const Saved = () => {
   const handleUnsave = async (postId: string) => {
     try {
       await toggleSavePost(postId);
-      const updated = await fetchSavedPosts();
-      setSavedPosts(updated);
+      setSavedPosts((prev) => prev.filter((p) => p.id !== postId));
       setOpenMenuId(null);
     } catch (e) {
       console.error("Failed to unsave:", e);
@@ -260,38 +287,45 @@ const Saved = () => {
             <p className="mt-1 text-xs">Start saving posts you want to revisit later.</p>
           </div>
         ) : (
-          <section className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
-            {savedPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                currentUserId={currentUserId}
-                currentUserAvatar={currentUserAvatar}
-                openMenuId={openMenuId}
-                setOpenMenuId={setOpenMenuId}
-                openCommentsPostId={openCommentsPostId}
-                comments={comments[post.id] || []}
-                commentInput={commentInputs[post.id] || ""}
-                isLoadingComments={isLoadingComments[post.id] || false}
-                isSubmittingComment={isSubmittingComment[post.id] || false}
-                replyingToCommentId={replyingTo?.postId === post.id ? replyingTo.commentId : null}
-                isDeletingCommentId={isDeletingCommentId}
-                onStartReply={handleStartReply}
-                onCancelReply={handleCancelReply}
-                onDeleteComment={handleDeleteComment}
-                onDelete={noopDelete}
-                hideDeleteInMenu
-                onUnsave={handleUnsave}
-                onLike={toggleLike}
-                onShare={toggleShare}
-                onSave={toggleSave}
-                saveButtonDisabled
-                onToggleComments={toggleComments}
-                onCommentInputChange={handleCommentInputChange}
-                onSubmitComment={handleSubmitComment}
-              />
-            ))}
-          </section>
+          <>
+            <section className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
+              {savedPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUserId}
+                  currentUserAvatar={currentUserAvatar}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                  openCommentsPostId={openCommentsPostId}
+                  comments={comments[post.id] || []}
+                  commentInput={commentInputs[post.id] || ""}
+                  isLoadingComments={isLoadingComments[post.id] || false}
+                  isSubmittingComment={isSubmittingComment[post.id] || false}
+                  replyingToCommentId={replyingTo?.postId === post.id ? replyingTo.commentId : null}
+                  isDeletingCommentId={isDeletingCommentId}
+                  onStartReply={handleStartReply}
+                  onCancelReply={handleCancelReply}
+                  onDeleteComment={handleDeleteComment}
+                  onDelete={noopDelete}
+                  hideDeleteInMenu
+                  onUnsave={handleUnsave}
+                  onLike={toggleLike}
+                  onShare={toggleShare}
+                  onSave={toggleSave}
+                  saveButtonDisabled
+                  onToggleComments={toggleComments}
+                  onCommentInputChange={handleCommentInputChange}
+                  onSubmitComment={handleSubmitComment}
+                />
+              ))}
+            </section>
+            <ScrollPaginationSentinel
+              onLoadMore={loadMorePosts}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+            />
+          </>
         )}
       </div>
     </div>

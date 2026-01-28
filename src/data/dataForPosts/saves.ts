@@ -65,7 +65,7 @@ export async function toggleSavePost(postId: string): Promise<boolean> {
   }
 }
 
-export async function fetchSavedPosts(): Promise<Post[]> {
+export async function fetchSavedPosts(limit?: number, offset?: number): Promise<Post[]> {
   const user = await getCurrentUser();
 
   // Fetch saved posts with related post and user data
@@ -73,7 +73,7 @@ export async function fetchSavedPosts(): Promise<Post[]> {
   let savedPostsData: any[] | null = null;
   let savedPostsError: any = null;
 
-  const query1 = supabase
+  let query1 = supabase
     .from("saved_posts")
     .select(`
       post_id,
@@ -99,6 +99,13 @@ export async function fetchSavedPosts(): Promise<Post[]> {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  if (limit !== undefined) {
+    query1 = query1.limit(limit);
+  }
+  if (offset !== undefined) {
+    query1 = query1.range(offset, offset + (limit ?? 1000) - 1);
+  }
+
   const result1 = await query1;
 
   if (!result1.error && result1.data && result1.data.length > 0) {
@@ -106,7 +113,7 @@ export async function fetchSavedPosts(): Promise<Post[]> {
     savedPostsError = null;
   } else {
     // Second attempt: Try without explicit foreign key
-    const query2 = supabase
+    let query2 = supabase
       .from("saved_posts")
       .select(`
         post_id,
@@ -131,6 +138,13 @@ export async function fetchSavedPosts(): Promise<Post[]> {
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+
+    if (limit !== undefined) {
+      query2 = query2.limit(limit);
+    }
+    if (offset !== undefined) {
+      query2 = query2.range(offset, offset + (limit ?? 1000) - 1);
+    }
 
     const result2 = await query2;
     savedPostsData = result2.data;

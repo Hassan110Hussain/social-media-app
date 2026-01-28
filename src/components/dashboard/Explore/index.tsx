@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import type { Post } from "@/types/api";
+import type { Post, Comment as ApiComment } from "@/types/api";
 import { fetchExplorePosts, toggleLikePost, toggleSavePost, toggleSharePost, createComment, fetchComments } from "@/lib/posts";
-import type { Comment } from "@/types/api";
 import ScrollPaginationSentinel from "@/components/common/ScrollPagination";
 import Loader from "@/components/common/Loader";
 import PostDetailOverlay from "@/components/common/PostDetailOverlay";
@@ -70,17 +69,13 @@ function ExplorePostMedia({ post, onClick }: { post: Post; onClick?: () => void 
 }
 
 const Explore = () => {
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
-  const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const [overlayPost, setOverlayPost] = useState<Post | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string>(ICONS.land);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -116,7 +111,8 @@ const Explore = () => {
         if (user) {
           setCurrentUserId(user.id);
           const { data: row } = await supabase.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
-          if (row?.avatar_url) setCurrentUserAvatar(row.avatar_url);
+          // Always update avatar, even if null (will use ICONS.land fallback)
+          setCurrentUserAvatar(row?.avatar_url || ICONS.land);
         }
       } catch (e) {
         console.error("Failed to load current user:", e);
@@ -125,35 +121,67 @@ const Explore = () => {
     void loadUser();
   }, []);
 
-  const loadOverlayComments = async (postId: string) => {
-    if (comments[postId]) return;
+  // Refresh avatar when page becomes visible (in case it was updated in another tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: row } = await supabase.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
+            if (row?.avatar_url) {
+              setCurrentUserAvatar(row.avatar_url);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to refresh avatar:", e);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  const [overlayComments, setOverlayComments] = useState<ApiComment[]>([]);
+  const [isLoadingOverlayComments, setIsLoadingOverlayComments] = useState<boolean>(false);
+  const [overlayCommentInput, setOverlayCommentInput] = useState<string>("");
+  const [isSubmittingOverlayComment, setIsSubmittingOverlayComment] = useState<boolean>(false);
+
+  const loadOverlayComments = useCallback(async (postId: string) => {
     try {
-      setIsLoadingComments((prev) => ({ ...prev, [postId]: true }));
+      setIsLoadingOverlayComments(true);
       const list = await fetchComments(postId);
-      setComments((prev) => ({ ...prev, [postId]: list }));
+      setOverlayComments(list);
     } catch (e) {
       console.error("Failed to load overlay comments:", e);
+      setOverlayComments([]);
     } finally {
-      setIsLoadingComments((prev) => ({ ...prev, [postId]: false }));
+      setIsLoadingOverlayComments(false);
     }
-  };
+  }, []);
 
   const handleOverlayCommentSubmit = async (content: string) => {
-    if (!overlayPost || !content.trim() || isSubmittingComment[overlayPost.id]) return;
+    if (!overlayPost || !content.trim() || isSubmittingOverlayComment) return;
     try {
-      setIsSubmittingComment((prev) => ({ ...prev, [overlayPost.id]: true }));
+      setIsSubmittingOverlayComment(true);
       await createComment(overlayPost.id, content.trim());
-      setCommentInputs((prev) => ({ ...prev, [overlayPost.id]: "" }));
+      setOverlayCommentInput("");
       const updated = await fetchComments(overlayPost.id);
-      setComments((prev) => ({ ...prev, [overlayPost.id]: updated }));
+      setOverlayComments(updated);
       setPosts((prev) => prev.map((p) => (p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p)));
       setOverlayPost((p) => (p && p.id === overlayPost.id ? { ...p, comments: p.comments + 1 } : p));
     } catch (e) {
       console.error("Failed to submit comment:", e);
     } finally {
-      setIsSubmittingComment((prev) => ({ ...prev, [overlayPost.id]: false }));
+      setIsSubmittingOverlayComment(false);
     }
   };
+
+  const handleCloseOverlay = useCallback(() => {
+    setOverlayPost(null);
+    setOverlayComments([]);
+    setOverlayCommentInput("");
+  }, []);
 
   const handleOverlayLike = async (postId: string) => {
     const prev = [...posts];
@@ -272,55 +300,12 @@ const Explore = () => {
     }
   };
 
-  const toggleComments = async (postId: string) => {
-    if (openCommentsPostId === postId) {
-      setOpenCommentsPostId(null);
-    } else {
-      setOpenCommentsPostId(postId);
-      if (!comments[postId]) {
-        try {
-          setIsLoadingComments((prev) => ({ ...prev, [postId]: true }));
-          const postComments = await fetchComments(postId);
-          setComments((prev) => ({ ...prev, [postId]: postComments }));
-        } catch (error) {
-          console.error("Failed to load comments:", error);
-        } finally {
-          setIsLoadingComments((prev) => ({ ...prev, [postId]: false }));
-        }
-      }
-    }
-  };
-
-  const handleSubmitComment = async (postId: string) => {
-    const content = commentInputs[postId]?.trim();
-    if (!content || isSubmittingComment[postId]) return;
-
-    try {
-      setIsSubmittingComment((prev) => ({ ...prev, [postId]: true }));
-      await createComment(postId, content);
-      
-      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
-      
-      const updatedComments = await fetchComments(postId);
-      setComments((prev) => ({ ...prev, [postId]: updatedComments }));
-      
-      // Update comment count in the current post
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, comments: post.comments + 1 }
-            : post
-        )
-      );
-    } catch (error) {
-      console.error("Failed to submit comment:", error);
-    } finally {
-      setIsSubmittingComment((prev) => ({ ...prev, [postId]: false }));
-    }
-  };
 
   return (
-    <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8">
+    <div
+      ref={scrollRootRef}
+      className="h-screen overflow-y-auto px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8"
+    >
       <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:gap-6">
         <main className="min-w-0 flex-1 space-y-4 sm:space-y-5">
           <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -443,14 +428,8 @@ const Explore = () => {
                         >
                           {post.liked ? "♥" : "♡"} {post.likes.toLocaleString()}
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleComments(post.id); }}
-                          className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                        >
-                          💬 {post.comments}
-                        </button>
-                        <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">📤 {post.shares}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">💬 {post.comments}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">📤 {post.shares}</span>
                         <button
                           type="button"
                           className="ml-auto cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
@@ -459,70 +438,6 @@ const Explore = () => {
                           View post
                         </button>
                       </div>
-
-                      {openCommentsPostId === post.id && (
-                      <div className="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
-                        <div className="flex items-start gap-2">
-                          <textarea
-                            value={commentInputs[post.id] || ""}
-                            onChange={(e) =>
-                              setCommentInputs((prev) => ({
-                                ...prev,
-                                [post.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Add a comment..."
-                            rows={2}
-                            className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSubmitComment(post.id);
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSubmitComment(post.id)}
-                            disabled={!commentInputs[post.id]?.trim() || isSubmittingComment[post.id]}
-                            className="cursor-pointer rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
-                          >
-                            {isSubmittingComment[post.id] ? "..." : "Post"}
-                          </button>
-                        </div>
-
-                        {isLoadingComments[post.id] ? (
-                          <Loader compact title="Loading comments…" className="py-4" />
-                        ) : comments[post.id] && comments[post.id].length > 0 ? (
-                          <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                            {comments[post.id].map((comment) => (
-                              <div key={comment.id} className="flex items-start gap-2">
-                                <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-slate-800">
-                                  <Image
-                                    src={comment.users.avatar_url || ICONS.land}
-                                    alt={comment.users.username}
-                                    fill
-                                    className="object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = ICONS.land;
-                                    }}
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="rounded-xl bg-slate-100 px-3 py-2 dark:bg-slate-800">
-                                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">@{comment.users.username}</p>
-                                    <p className="mt-1 text-xs text-slate-700 dark:text-slate-200">{comment.content}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="py-4 text-center text-xs text-slate-500 dark:text-slate-400">No comments yet. Be the first!</div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </article>
                   );
@@ -533,6 +448,7 @@ const Explore = () => {
                       onLoadMore={loadMorePosts}
                       hasMore={hasMore}
                       isLoading={isLoadingMore}
+                      root={scrollRootRef.current}
                     />
                   </div>
                 )}
@@ -587,16 +503,16 @@ const Explore = () => {
 
       <PostDetailOverlay
         post={overlayPost}
-        onClose={() => setOverlayPost(null)}
-        comments={overlayPost ? (comments[overlayPost.id] ?? []) : []}
-        isLoadingComments={overlayPost ? (isLoadingComments[overlayPost.id] ?? false) : false}
+        onClose={handleCloseOverlay}
+        comments={overlayComments}
+        isLoadingComments={isLoadingOverlayComments}
         onOpen={loadOverlayComments}
         currentUserAvatar={currentUserAvatar}
         currentUserId={currentUserId}
-        commentInput={overlayPost ? (commentInputs[overlayPost.id] ?? "") : ""}
-        onCommentInputChange={(v) => overlayPost && setCommentInputs((prev) => ({ ...prev, [overlayPost.id]: v }))}
+        commentInput={overlayCommentInput}
+        onCommentInputChange={setOverlayCommentInput}
         onSubmitComment={handleOverlayCommentSubmit}
-        isSubmittingComment={overlayPost ? (isSubmittingComment[overlayPost.id] ?? false) : false}
+        isSubmittingComment={isSubmittingOverlayComment}
         onLike={handleOverlayLike}
         onShare={handleOverlayShare}
         onSave={handleOverlaySave}

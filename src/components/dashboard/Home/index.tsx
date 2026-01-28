@@ -87,9 +87,8 @@ const Home = () => {
             .eq("id", user.id)
             .maybeSingle();
           
-          if (profile?.avatar_url) {
-            setCurrentUserAvatar(profile.avatar_url);
-          }
+          // Always update avatar, even if null (will use ICONS.land fallback)
+          setCurrentUserAvatar(profile?.avatar_url || ICONS.land);
         }
       } catch (error) {
         console.error("Failed to load current user profile:", error);
@@ -99,6 +98,31 @@ const Home = () => {
     void loadPosts();
     void loadCurrentUserProfile();
   }, [feedFilter]);
+
+  // Refresh avatar when page becomes visible (in case it was updated in another tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from("users")
+              .select("avatar_url")
+              .eq("id", user.id)
+              .maybeSingle();
+            if (profile?.avatar_url) {
+              setCurrentUserAvatar(profile.avatar_url);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to refresh avatar:", error);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   // Load more posts when scrolling
   const loadMorePosts = async () => {

@@ -72,6 +72,7 @@ const PostComposer = ({
       <div className="flex items-start gap-4">
         <div className="relative mt-0.5 h-11 w-11 shrink-0 overflow-hidden rounded-full bg-slate-200 ring-2 ring-slate-100 dark:bg-slate-700 dark:ring-slate-800">
           <Image
+            key={currentUserAvatar || 'default'}
             src={currentUserAvatar}
             alt="Your profile"
             fill

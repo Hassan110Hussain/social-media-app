@@ -122,8 +122,11 @@ export function ScrollPaginationSentinel({
   }
 
   return (
-    <div ref={sentinelRef} className="py-6">
-      {isLoading && <Loader compact title="Loading more posts..." />}
+    <div
+      ref={sentinelRef}
+      className="py-6 text-center text-sm text-slate-500 dark:text-slate-400"
+    >
+      {isLoading && <p>Loading more posts...</p>}
     </div>
   );
 }

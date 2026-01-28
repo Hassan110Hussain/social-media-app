@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Post, UserProfile, Comment } from "@/types/api";
 import { fetchUserPosts, fetchComments, createComment, toggleLikePost, toggleSavePost, toggleSharePost } from "@/lib/posts";
@@ -8,10 +8,14 @@ import { fetchCurrentUserProfile, updateUserProfile } from "@/lib/profile";
 import { toggleFollowUser } from "@/lib/follows";
 import Loader from "@/components/common/Loader";
 import PostDetailOverlay from "@/components/common/PostDetailOverlay";
+import ScrollPaginationSentinel from "@/components/common/ScrollPagination";
 import ICONS from "@/components/assets/icons";
 import { supabase } from "@/lib/supabase";
 
+const POSTS_PER_PAGE = 12;
+
 const Profile = () => {
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const [profile, setProfile] = useState<(UserProfile & { 
     followingCount: number; 
     followerCount: number; 
@@ -20,6 +24,8 @@ const Profile = () => {
   }) | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editForm, setEditForm] = useState({
@@ -56,9 +62,10 @@ const Profile = () => {
           bio: userProfile.bio || "",
         });
 
-        // Fetch user's posts
-        const userPosts = await fetchUserPosts(userProfile.id);
+        // Fetch user's posts (first page)
+        const userPosts = await fetchUserPosts(userProfile.id, POSTS_PER_PAGE, 0);
         setPosts(userPosts);
+        setHasMore(userPosts.length === POSTS_PER_PAGE);
       } catch (err) {
         console.error("Failed to load profile:", err);
         setError("Unable to load profile right now. Please try again.");
@@ -78,7 +85,9 @@ const Profile = () => {
         if (user) {
           setCurrentUserId(user.id);
           const { data: row } = await supabase.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
-          if (row?.avatar_url) setCurrentUserAvatar(row.avatar_url);
+          if (row?.avatar_url) {
+            setCurrentUserAvatar(row.avatar_url);
+          }
         }
       } catch (e) {
         console.error("Failed to load current user:", e);
@@ -87,7 +96,37 @@ const Profile = () => {
     void loadCurrentUser();
   }, []);
 
-  const loadOverlayComments = async (postId: string) => {
+  // Refresh avatar when profile changes
+  useEffect(() => {
+    if (profile?.avatar_url) {
+      setCurrentUserAvatar(profile.avatar_url);
+    }
+  }, [profile?.avatar_url]);
+
+  // Load more posts when scrolling
+  const loadMorePosts = async () => {
+    if (isLoadingMore || !hasMore || !profile) return;
+
+    try {
+      setIsLoadingMore(true);
+      const currentOffset = posts.length;
+      const newPosts = await fetchUserPosts(profile.id, POSTS_PER_PAGE, currentOffset);
+
+      if (newPosts.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts((prev) => [...prev, ...newPosts]);
+        setHasMore(newPosts.length === POSTS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error("Failed to load more posts:", error);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const loadOverlayComments = useCallback(async (postId: string) => {
     try {
       setIsLoadingOverlayComments(true);
       const list = await fetchComments(postId);
@@ -98,7 +137,13 @@ const Profile = () => {
     } finally {
       setIsLoadingOverlayComments(false);
     }
-  };
+  }, []);
+
+  const handleCloseOverlay = useCallback(() => {
+    setOverlayPost(null);
+    setOverlayComments([]);
+    setOverlayCommentInput("");
+  }, []);
 
   const handleOverlayCommentSubmit = async (content: string) => {
     if (!overlayPost || !content.trim() || isSubmittingOverlayComment) return;
@@ -226,7 +271,10 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8">
+    <div
+      ref={scrollRootRef}
+      className="h-screen overflow-y-auto px-3 py-4 text-slate-900 transition-colors dark:text-white sm:px-4 sm:py-6 md:px-6 lg:px-8"
+    >
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Profile Header */}
         <section className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm shadow-slate-200 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:p-8">
@@ -234,6 +282,7 @@ const Profile = () => {
             {/* Avatar */}
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-slate-800 sm:h-32 sm:w-32">
               <Image
+                key={profile.avatar_url || 'default'}
                 src={profile.avatar_url || ICONS.land}
                 alt={profile.username || "Profile"}
                 fill
@@ -382,8 +431,9 @@ const Profile = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => {
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {posts.map((post) => {
                 const thumbUrl = post.imageUrls?.length ? post.imageUrls[0] : post.imageUrl;
                 return (
                   <button
@@ -432,14 +482,21 @@ const Profile = () => {
                   </button>
                 );
               })}
-            </div>
+              </div>
+              <ScrollPaginationSentinel
+                onLoadMore={loadMorePosts}
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                root={scrollRootRef.current}
+              />
+            </>
           )}
         </section>
       </div>
 
       <PostDetailOverlay
         post={overlayPost}
-        onClose={() => setOverlayPost(null)}
+        onClose={handleCloseOverlay}
         comments={overlayComments}
         isLoadingComments={isLoadingOverlayComments}
         onOpen={loadOverlayComments}

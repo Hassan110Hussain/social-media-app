@@ -625,14 +625,14 @@ export async function fetchMyPosts(limit?: number, offset?: number): Promise<Pos
  * Fetch posts for a specific user's profile
  * Returns: All posts by that user
  */
-export async function fetchUserPosts(userId: string): Promise<Post[]> {
+export async function fetchUserPosts(userId: string, limit?: number, offset?: number): Promise<Post[]> {
   const user = await getCurrentUser();
 
   // Fetch posts from the specified user
   let postsData: any[] | null = null;
   let postsError: any = null;
 
-  const query = supabase
+  let query = supabase
     .from("posts")
     .select(
       `
@@ -655,6 +655,13 @@ export async function fetchUserPosts(userId: string): Promise<Post[]> {
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (limit !== undefined) {
+    query = query.limit(limit);
+  }
+  if (offset !== undefined) {
+    query = query.range(offset, offset + (limit ?? 1000) - 1);
+  }
 
   const result = await query;
   postsData = result.data;
